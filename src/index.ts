@@ -1,10 +1,11 @@
-import { saveState, getState, setFailed } from "@actions/core";
+import { saveState, getState, setFailed, info, setOutput, warning } from "@actions/core";
+import { getExecOutput } from "@actions/exec";
 import { getInputs } from "./inputs.js";
 import { installVitePlus } from "./install-viteplus.js";
 import { runViteInstall } from "./run-install.js";
 import { restoreCache } from "./cache-restore.js";
 import { saveCache } from "./cache-save.js";
-import { State } from "./types.js";
+import { State, Outputs } from "./types.js";
 import type { Inputs } from "./types.js";
 
 async function runMain(inputs: Inputs): Promise<void> {
@@ -22,6 +23,26 @@ async function runMain(inputs: Inputs): Promise<void> {
   // Step 3: Run vite install if requested
   if (inputs.runInstall.length > 0) {
     await runViteInstall(inputs);
+  }
+
+  // Print version info at the end
+  await printViteVersion();
+}
+
+async function printViteVersion(): Promise<void> {
+  try {
+    const result = await getExecOutput("vite", ["--version"], { silent: true });
+    const versionOutput = result.stdout.trim();
+    info(versionOutput);
+
+    // Extract global version for output (e.g., "- Global: v0.0.0" -> "0.0.0")
+    const globalMatch = versionOutput.match(/Global:\s*v?([\d.]+[^\s]*)/i);
+    const version = globalMatch?.[1] || "unknown";
+    saveState(State.InstalledVersion, version);
+    setOutput(Outputs.Version, version);
+  } catch (error) {
+    warning(`Could not get vite version: ${error}`);
+    setOutput(Outputs.Version, "unknown");
   }
 }
 

@@ -1,7 +1,7 @@
-import { info, debug, warning, saveState, setOutput, addPath } from "@actions/core";
+import { info, debug, warning, addPath } from "@actions/core";
 import { exec, getExecOutput } from "@actions/exec";
 import type { Inputs } from "./types.js";
-import { PACKAGE_NAME, GITHUB_REGISTRY, State, Outputs } from "./types.js";
+import { PACKAGE_NAME, GITHUB_REGISTRY } from "./types.js";
 
 export async function installVitePlus(inputs: Inputs): Promise<void> {
   const { version, registry, githubToken } = inputs;
@@ -52,40 +52,8 @@ export async function installVitePlus(inputs: Inputs): Promise<void> {
     throw new Error(`Failed to install ${PACKAGE_NAME}. Exit code: ${exitCode}`);
   }
 
-  // Verify installation and get version
-  const installedVersion = await getInstalledVersion();
-  info(`Successfully installed ${PACKAGE_NAME}@${installedVersion}`);
-
-  // Save state for outputs
-  saveState(State.InstalledVersion, installedVersion);
-  setOutput(Outputs.Version, installedVersion);
-
   // Ensure global bin is in PATH
   await ensureGlobalBinInPath();
-}
-
-async function getInstalledVersion(): Promise<string> {
-  try {
-    const result = await getExecOutput("vite", ["--version"], {
-      silent: true,
-    });
-    return result.stdout.trim();
-  } catch {
-    // Fallback: check npm list
-    try {
-      const result = await getExecOutput(
-        "npm",
-        ["list", "-g", PACKAGE_NAME, "--depth=0", "--json"],
-        { silent: true },
-      );
-      const data = JSON.parse(result.stdout) as {
-        dependencies?: Record<string, { version?: string }>;
-      };
-      return data.dependencies?.[PACKAGE_NAME]?.version || "unknown";
-    } catch {
-      return "unknown";
-    }
-  }
 }
 
 async function ensureGlobalBinInPath(): Promise<void> {
