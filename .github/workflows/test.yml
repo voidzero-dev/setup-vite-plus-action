@@ -24,6 +24,8 @@ jobs:
         uses: ./
         with:
           version: latest
+          registry: github
+          github-token: ${{ secrets.VP_TOKEN }}
           cache: false
 
       - name: Verify installation
@@ -50,6 +52,8 @@ jobs:
         uses: ./
         id: setup
         with:
+          registry: github
+          github-token: ${{ secrets.VP_TOKEN }}
           cache: true
           cache-dependency-path: pnpm-lock.yaml
 
