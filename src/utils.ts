@@ -80,11 +80,9 @@ function inferLockFileType(fullPath: string, filename: string): LockFileInfo {
 export async function getCacheDirectories(lockType: LockFileType): Promise<string[]> {
   switch (lockType) {
     case LockFileType.Npm:
-      return getNpmCacheDir();
     case LockFileType.Pnpm:
-      return getPnpmStoreDir();
     case LockFileType.Yarn:
-      return getYarnCacheDir();
+      return getViteCacheDir();
     case LockFileType.Bun:
       return getBunCacheDir();
     default:
@@ -110,27 +108,9 @@ async function getCommandOutput(command: string, args: string[]): Promise<string
   }
 }
 
-async function getNpmCacheDir(): Promise<string[]> {
-  const cacheDir = await getCommandOutput("npm", ["config", "get", "cache"]);
+async function getViteCacheDir(): Promise<string[]> {
+  const cacheDir = await getCommandOutput("vite", ["pm", "cache", "dir"]);
   return cacheDir ? [cacheDir] : [];
-}
-
-async function getPnpmStoreDir(): Promise<string[]> {
-  const storeDir = await getCommandOutput("pnpm", ["store", "path", "--silent"]);
-  return storeDir ? [storeDir] : [];
-}
-
-async function getYarnCacheDir(): Promise<string[]> {
-  // Check yarn version first
-  const version = await getCommandOutput("yarn", ["--version"]);
-  if (!version) return [];
-
-  const isYarn1 = version.startsWith("1.");
-  const cacheDir = isYarn1
-    ? await getCommandOutput("yarn", ["cache", "dir"])
-    : await getCommandOutput("yarn", ["config", "get", "cacheFolder"]);
-
-  return cacheDir && cacheDir !== "undefined" ? [cacheDir] : [];
 }
 
 async function getBunCacheDir(): Promise<string[]> {

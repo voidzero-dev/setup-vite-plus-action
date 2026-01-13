@@ -34,7 +34,7 @@ jobs:
           vp --version
           vite --version
 
-  test-cache:
+  test-cache-pnpm:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
@@ -43,13 +43,14 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Create test project
+      - name: Create test project with pnpm-lock.yaml
         run: |
           mkdir -p test-project
           cd test-project
           echo '{"name":"test-project","private":true}' > package.json
+          touch pnpm-lock.yaml
 
-      - name: Setup Vite+ with cache
+      - name: Setup Vite+ with pnpm cache
         uses: ./
         id: setup
         with:
@@ -57,7 +58,71 @@ jobs:
           github-token: ${{ secrets.VP_TOKEN }}
           run-install: false
           cache: true
-          cache-dependency-path: pnpm-lock.yaml
+          cache-dependency-path: test-project/pnpm-lock.yaml
+
+      - name: Verify installation
+        run: |
+          vp --version
+          echo "Installed version: ${{ steps.setup.outputs.version }}"
+          echo "Cache hit: ${{ steps.setup.outputs.cache-hit }}"
+
+  test-cache-npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+
+      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
+        with:
+          node-version: '22'
+
+      - name: Create test project with package-lock.json
+        run: |
+          mkdir -p test-project
+          cd test-project
+          echo '{"name":"test-project","private":true}' > package.json
+          echo '{"name":"test-project","lockfileVersion":3}' > package-lock.json
+
+      - name: Setup Vite+ with npm cache
+        uses: ./
+        id: setup
+        with:
+          registry: github
+          github-token: ${{ secrets.VP_TOKEN }}
+          run-install: false
+          cache: true
+          cache-dependency-path: test-project/package-lock.json
+
+      - name: Verify installation
+        run: |
+          vp --version
+          echo "Installed version: ${{ steps.setup.outputs.version }}"
+          echo "Cache hit: ${{ steps.setup.outputs.cache-hit }}"
+
+  test-cache-yarn:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+
+      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
+        with:
+          node-version: '22'
+
+      - name: Create test project with yarn.lock
+        run: |
+          mkdir -p test-project
+          cd test-project
+          echo '{"name":"test-project","private":true}' > package.json
+          touch yarn.lock
+
+      - name: Setup Vite+ with yarn cache
+        uses: ./
+        id: setup
+        with:
+          registry: github
+          github-token: ${{ secrets.VP_TOKEN }}
+          run-install: false
+          cache: true
+          cache-dependency-path: test-project/yarn.lock
 
       - name: Verify installation
         run: |
