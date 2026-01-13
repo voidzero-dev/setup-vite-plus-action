@@ -20,7 +20,7 @@ inputs:
   run-install:
     description: 'Run `vite install` after setup. Accepts boolean or YAML object with cwd/args.'
     required: false
-    default: 'false'
+    default: 'true'
   cache:
     description: 'Enable caching of project dependencies'
     required: false

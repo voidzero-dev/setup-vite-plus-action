@@ -26,6 +26,7 @@ jobs:
           version: latest
           registry: github
           github-token: ${{ secrets.VP_TOKEN }}
+          run-install: false
           cache: false
 
       - name: Verify installation
@@ -54,6 +55,7 @@ jobs:
         with:
           registry: github
           github-token: ${{ secrets.VP_TOKEN }}
+          run-install: false
           cache: true
           cache-dependency-path: pnpm-lock.yaml
 
