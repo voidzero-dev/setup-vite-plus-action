@@ -151,6 +151,9 @@ jobs:
       - name: Format check
         run: vite run fmt:check
 
+      - name: Lint check
+        run: vite run lint
+
       - name: Unit tests
         run: vite run test
 

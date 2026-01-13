@@ -141,7 +141,6 @@ jobs:
       - uses: voidzero-dev/setup-vite-plus-action@v1
         with:
           cache: true
-          run-install: true
 
       - run: vite run build
 
