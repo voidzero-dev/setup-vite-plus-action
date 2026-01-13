@@ -6,7 +6,9 @@
   "packageManager": "pnpm@10.28.0",
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@actions/cache": "^4.0.0",
@@ -19,6 +21,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsdown": "latest",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.17"
   }
 }
