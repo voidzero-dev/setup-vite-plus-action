@@ -68,25 +68,30 @@ jobs:
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
-      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
-
       - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
         with:
           node-version: '22'
-          cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install
+      - name: Setup Vite+ with cache
+        uses: ./
+        id: setup
+        with:
+          registry: github
+          github-token: ${{ secrets.VP_TOKEN }}
+          cache: true
 
       - name: Type check
-        run: pnpm run typecheck
+        run: vite run typecheck
+
+      - name: Format check
+        run: vite run fmt:check
 
       - name: Unit tests
-        run: pnpm test
+        run: vite run test
 
       - name: Build
-        run: pnpm run build
+        run: vite run build
 
       - name: Verify dist is up to date
         run: |
-          git diff --exit-code dist/ || (echo "dist/ is out of date. Run 'pnpm run build' and commit." && exit 1)
+          git diff --exit-code dist/ || (echo "dist/ is out of date. Run 'vite run build' and commit." && exit 1)

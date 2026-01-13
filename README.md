@@ -143,9 +143,9 @@ jobs:
           cache: true
           run-install: true
 
-      - run: vite build
+      - run: vite run build
 
-      - run: vite test
+      - run: vite run test
 ```
 
 ## License
