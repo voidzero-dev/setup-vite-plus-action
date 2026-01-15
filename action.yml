@@ -1,5 +1,5 @@
 name: 'Setup Vite+'
-description: 'Install Vite+ (@voidzero-dev/global) and optionally cache project dependencies'
+description: 'Install Vite+ (vite-plus-cli) and optionally cache project dependencies'
 author: 'voidzero-dev'
 branding:
   icon: zap
@@ -7,16 +7,9 @@ branding:
 
 inputs:
   version:
-    description: 'Version of @voidzero-dev/global to install'
+    description: 'Version of vite-plus-cli to install'
     required: false
     default: 'latest'
-  registry:
-    description: 'Registry to install from: "npm" (default) or "github"'
-    required: false
-    default: 'npm'
-  github-token:
-    description: 'GitHub PAT for GitHub Package Registry. Required when registry is "github".'
-    required: false
   run-install:
     description: 'Run `vite install` after setup. Accepts boolean or YAML object with cwd/args.'
     required: false
@@ -31,7 +24,7 @@ inputs:
 
 outputs:
   version:
-    description: 'The installed version of @voidzero-dev/global'
+    description: 'The installed version of vite-plus-cli'
   cache-hit:
     description: 'Boolean indicating if cache was restored'
 

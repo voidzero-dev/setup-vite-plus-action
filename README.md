@@ -1,11 +1,10 @@
 # setup-vite-plus-action
 
-GitHub Action to set up [Vite+](https://github.com/voidzero-dev/vite-plus) (`@voidzero-dev/global`) with dependency caching support.
+GitHub Action to set up [Vite+](https://github.com/voidzero-dev/vite-plus) (`vite-plus-cli`) with dependency caching support.
 
 ## Features
 
 - Install Vite+ globally with version specification
-- Support both npm Registry and GitHub Package Registry
 - Cache project dependencies with auto-detection of lock files
 - Optionally run `vite install` after setup
 - Support for all major package managers (npm, pnpm, yarn)
@@ -55,20 +54,6 @@ steps:
       cache: true
 ```
 
-### GitHub Package Registry
-
-```yaml
-steps:
-  - uses: actions/checkout@v6
-  - uses: actions/setup-node@v6
-    with:
-      node-version: '22'
-  - uses: voidzero-dev/setup-vite-plus-action@v1
-    with:
-      registry: github
-      github-token: ${{ secrets.GH_PKG_TOKEN }}
-```
-
 ### Advanced Run Install
 
 ```yaml
@@ -90,9 +75,7 @@ steps:
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `version` | Version of @voidzero-dev/global to install | No | `latest` |
-| `registry` | Registry to install from: `npm` or `github` | No | `npm` |
-| `github-token` | GitHub PAT for GitHub Package Registry | No | - |
+| `version` | Version of vite-plus-cli to install | No | `latest` |
 | `run-install` | Run `vite install` after setup. Accepts boolean or YAML object with `cwd`/`args` | No | `true` |
 | `cache` | Enable caching of project dependencies | No | `false` |
 | `cache-dependency-path` | Path to lock file for cache key generation | No | Auto-detected |
@@ -101,7 +84,7 @@ steps:
 
 | Output | Description |
 |--------|-------------|
-| `version` | The installed version of @voidzero-dev/global |
+| `version` | The installed version of vite-plus-cli |
 | `cache-hit` | Boolean indicating if cache was restored |
 
 ## Caching
@@ -145,6 +128,10 @@ jobs:
 
       - run: vite run test
 ```
+
+## Feedback
+
+If you have any feedback or issues, please [submit an issue or start a discussion](https://github.com/voidzero-dev/vite-plus-discussions).
 
 ## License
 
