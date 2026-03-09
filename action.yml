@@ -1,4 +1,4 @@
-name: "Setup vite-plus"
+name: "Setup vp"
 description: "Install Vite+ (vp) and optionally cache project dependencies"
 author: "voidzero-dev"
 branding:
