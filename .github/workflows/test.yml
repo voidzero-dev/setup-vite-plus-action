@@ -141,6 +141,7 @@ jobs:
         id: setup
         with:
           cache: true
+          node-version-file: .node-version
 
       - name: Type check
         run: vp run typecheck
