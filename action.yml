@@ -24,6 +24,10 @@ inputs:
   cache-dependency-path:
     description: "Path to lock file for cache key generation. Auto-detected if not specified."
     required: false
+  cache-save-if:
+    description: "Whether to save the cache. If false, cache is only restored. Useful for limiting cache writes to specific branches."
+    required: false
+    default: "true"
 
 outputs:
   version:

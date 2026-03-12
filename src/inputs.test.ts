@@ -28,6 +28,7 @@ describe("getInputs", () => {
       runInstall: [],
       cache: false,
       cacheDependencyPath: undefined,
+      cacheSaveIf: false,
     });
   });
 

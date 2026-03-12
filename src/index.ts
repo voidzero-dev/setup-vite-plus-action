@@ -54,7 +54,7 @@ async function printViteVersion(): Promise<void> {
 
 async function runPost(inputs: Inputs): Promise<void> {
   // Save cache if enabled
-  if (inputs.cache) {
+  if (inputs.cache && inputs.cacheSaveIf) {
     await saveCache();
   }
 }

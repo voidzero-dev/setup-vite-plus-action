@@ -23,6 +23,7 @@ export interface Inputs {
   readonly runInstall: RunInstall[];
   readonly cache: boolean;
   readonly cacheDependencyPath?: string;
+  readonly cacheSaveIf: boolean;
 }
 
 // Lock file types
