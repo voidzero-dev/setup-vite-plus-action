@@ -25,6 +25,8 @@ describe("getInputs", () => {
 
     expect(inputs).toEqual({
       version: "latest",
+      nodeVersion: undefined,
+      nodeVersionFile: undefined,
       runInstall: [],
       cache: false,
       cacheDependencyPath: undefined,
@@ -101,6 +103,18 @@ describe("getInputs", () => {
     const inputs = getInputs();
 
     expect(inputs.cache).toBe(true);
+  });
+
+  it("should parse node-version-file input", () => {
+    vi.mocked(getInput).mockImplementation((name) => {
+      if (name === "node-version-file") return ".nvmrc";
+      return "";
+    });
+    vi.mocked(getBooleanInput).mockReturnValue(false);
+
+    const inputs = getInputs();
+
+    expect(inputs.nodeVersionFile).toBe(".nvmrc");
   });
 
   it("should parse cache-dependency-path input", () => {

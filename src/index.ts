@@ -7,6 +7,7 @@ import { restoreCache } from "./cache-restore.js";
 import { saveCache } from "./cache-save.js";
 import { State, Outputs } from "./types.js";
 import type { Inputs } from "./types.js";
+import { resolveNodeVersionFile } from "./node-version-file.js";
 
 async function runMain(inputs: Inputs): Promise<void> {
   // Mark that post action should run
@@ -16,9 +17,14 @@ async function runMain(inputs: Inputs): Promise<void> {
   await installVitePlus(inputs);
 
   // Step 2: Set up Node.js version if specified
-  if (inputs.nodeVersion) {
-    info(`Setting up Node.js ${inputs.nodeVersion} via vp env use...`);
-    await exec("vp", ["env", "use", inputs.nodeVersion]);
+  let nodeVersion = inputs.nodeVersion;
+  if (!nodeVersion && inputs.nodeVersionFile) {
+    nodeVersion = resolveNodeVersionFile(inputs.nodeVersionFile);
+  }
+
+  if (nodeVersion) {
+    info(`Setting up Node.js ${nodeVersion} via vp env use...`);
+    await exec("vp", ["env", "use", nodeVersion]);
   }
 
   // Step 3: Restore cache if enabled

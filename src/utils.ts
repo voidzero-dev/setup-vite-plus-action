@@ -5,6 +5,14 @@ import { isAbsolute, join, basename } from "node:path";
 import { LockFileType } from "./types.js";
 import type { LockFileInfo } from "./types.js";
 
+export function getWorkspaceDir(): string {
+  return process.env.GITHUB_WORKSPACE || process.cwd();
+}
+
+export function resolveWorkspacePath(filePath: string): string {
+  return isAbsolute(filePath) ? filePath : join(getWorkspaceDir(), filePath);
+}
+
 // Lock file patterns in priority order
 const LOCK_FILES: Array<{ filename: string; type: LockFileType }> = [
   { filename: "pnpm-lock.yaml", type: LockFileType.Pnpm },
@@ -17,11 +25,11 @@ const LOCK_FILES: Array<{ filename: string; type: LockFileType }> = [
  * Detect lock file in the workspace
  */
 export function detectLockFile(explicitPath?: string): LockFileInfo | undefined {
-  const workspace = process.env.GITHUB_WORKSPACE || process.cwd();
+  const workspace = getWorkspaceDir();
 
   // If explicit path provided, use it
   if (explicitPath) {
-    const fullPath = isAbsolute(explicitPath) ? explicitPath : join(workspace, explicitPath);
+    const fullPath = resolveWorkspacePath(explicitPath);
 
     if (existsSync(fullPath)) {
       const filename = basename(fullPath);

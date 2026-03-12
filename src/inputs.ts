@@ -8,6 +8,7 @@ export function getInputs(): Inputs {
   return {
     version: getInput("version") || "latest",
     nodeVersion: getInput("node-version") || undefined,
+    nodeVersionFile: getInput("node-version-file") || undefined,
     runInstall: parseRunInstall(getInput("run-install")),
     cache: getBooleanInput("cache"),
     cacheDependencyPath: getInput("cache-dependency-path") || undefined,
