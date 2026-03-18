@@ -4,7 +4,6 @@ import { resolveVersion, restoreVpCache, saveVpCache } from "./cache-vp.js";
 import { State } from "./types.js";
 import { restoreCache, saveCache } from "@actions/cache";
 import { saveState, getState, warning } from "@actions/core";
-import { existsSync, symlinkSync, mkdirSync } from "node:fs";
 
 // Mock @actions/cache
 vi.mock("@actions/cache", () => ({
@@ -20,18 +19,6 @@ vi.mock("@actions/core", () => ({
   saveState: vi.fn(),
   getState: vi.fn(),
 }));
-
-// Mock node:fs
-vi.mock("node:fs", async () => {
-  const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
-  return {
-    ...actual,
-    existsSync: vi.fn(),
-    symlinkSync: vi.fn(),
-    mkdirSync: vi.fn(),
-    rmSync: vi.fn(),
-  };
-});
 
 describe("resolveVersion", () => {
   afterEach(() => {
@@ -94,51 +81,51 @@ describe("restoreVpCache", () => {
     vi.resetAllMocks();
   });
 
-  it("should return true on cache hit and create symlinks", async () => {
-    vi.mocked(restoreCache).mockResolvedValue(`setup-vp-Linux-${arch()}-0.1.8`);
-    vi.mocked(existsSync).mockReturnValue(false);
+  it("should return true on cache hit", async () => {
+    const expectedKey = `setup-vp-Linux-${arch()}-0.1.8-node20`;
+    vi.mocked(restoreCache).mockResolvedValue(expectedKey);
 
-    const result = await restoreVpCache("0.1.8");
+    const result = await restoreVpCache("0.1.8", "20");
 
     expect(result).toBe(true);
-    expect(saveState).toHaveBeenCalledWith(
-      State.VpCachePrimaryKey,
-      `setup-vp-Linux-${arch()}-0.1.8`,
-    );
-    expect(saveState).toHaveBeenCalledWith(
-      State.VpCacheMatchedKey,
-      `setup-vp-Linux-${arch()}-0.1.8`,
-    );
-    expect(saveState).toHaveBeenCalledWith(State.VpCacheVersion, "0.1.8");
-    // Verify symlinks were created
-    expect(symlinkSync).toHaveBeenCalledTimes(2);
-    expect(mkdirSync).toHaveBeenCalled();
+    expect(saveState).toHaveBeenCalledWith(State.VpCachePrimaryKey, expectedKey);
+    expect(saveState).toHaveBeenCalledWith(State.VpCacheMatchedKey, expectedKey);
   });
 
-  it("should cache the version-specific directory, not the whole home", async () => {
+  it("should include node version in cache key", async () => {
     vi.mocked(restoreCache).mockResolvedValue(undefined);
 
-    await restoreVpCache("0.1.8");
+    await restoreVpCache("0.1.8", "22");
 
     expect(restoreCache).toHaveBeenCalledWith(
-      ["/home/runner/.vite-plus/0.1.8"],
-      `setup-vp-Linux-${arch()}-0.1.8`,
+      ["/home/runner/.vite-plus"],
+      `setup-vp-Linux-${arch()}-0.1.8-node22`,
+    );
+  });
+
+  it("should handle empty node version", async () => {
+    vi.mocked(restoreCache).mockResolvedValue(undefined);
+
+    await restoreVpCache("0.1.8", "");
+
+    expect(restoreCache).toHaveBeenCalledWith(
+      ["/home/runner/.vite-plus"],
+      `setup-vp-Linux-${arch()}-0.1.8-node`,
     );
   });
 
   it("should return false on cache miss", async () => {
     vi.mocked(restoreCache).mockResolvedValue(undefined);
 
-    const result = await restoreVpCache("0.1.8");
+    const result = await restoreVpCache("0.1.8", "20");
 
     expect(result).toBe(false);
-    expect(symlinkSync).not.toHaveBeenCalled();
   });
 
   it("should return false and warn on cache restore error", async () => {
     vi.mocked(restoreCache).mockRejectedValue(new Error("cache error"));
 
-    const result = await restoreVpCache("0.1.8");
+    const result = await restoreVpCache("0.1.8", "20");
 
     expect(result).toBe(false);
     expect(warning).toHaveBeenCalled();
@@ -164,10 +151,10 @@ describe("saveVpCache", () => {
   });
 
   it("should skip when primary key matches matched key", async () => {
-    vi.mocked(getState).mockImplementation((key: string) => {
-      if (key === State.VpCachePrimaryKey) return `setup-vp-Linux-${arch()}-0.1.8`;
-      if (key === State.VpCacheMatchedKey) return `setup-vp-Linux-${arch()}-0.1.8`;
-      if (key === State.VpCacheVersion) return "0.1.8";
+    const key = `setup-vp-Linux-${arch()}-0.1.8-node20`;
+    vi.mocked(getState).mockImplementation((k: string) => {
+      if (k === State.VpCachePrimaryKey) return key;
+      if (k === State.VpCacheMatchedKey) return key;
       return "";
     });
 
@@ -176,26 +163,22 @@ describe("saveVpCache", () => {
     expect(saveCache).not.toHaveBeenCalled();
   });
 
-  it("should save only the version-specific directory on cache miss", async () => {
-    vi.mocked(getState).mockImplementation((key: string) => {
-      if (key === State.VpCachePrimaryKey) return `setup-vp-Linux-${arch()}-0.1.8`;
-      if (key === State.VpCacheVersion) return "0.1.8";
+  it("should save cache on cache miss", async () => {
+    const key = `setup-vp-Linux-${arch()}-0.1.8-node20`;
+    vi.mocked(getState).mockImplementation((k: string) => {
+      if (k === State.VpCachePrimaryKey) return key;
       return "";
     });
     vi.mocked(saveCache).mockResolvedValue(12345);
 
     await saveVpCache();
 
-    expect(saveCache).toHaveBeenCalledWith(
-      ["/home/runner/.vite-plus/0.1.8"],
-      `setup-vp-Linux-${arch()}-0.1.8`,
-    );
+    expect(saveCache).toHaveBeenCalledWith(["/home/runner/.vite-plus"], key);
   });
 
   it("should handle save errors gracefully", async () => {
-    vi.mocked(getState).mockImplementation((key: string) => {
-      if (key === State.VpCachePrimaryKey) return `setup-vp-Linux-${arch()}-0.1.8`;
-      if (key === State.VpCacheVersion) return "0.1.8";
+    vi.mocked(getState).mockImplementation((k: string) => {
+      if (k === State.VpCachePrimaryKey) return `setup-vp-Linux-${arch()}-0.1.8-node20`;
       return "";
     });
     vi.mocked(saveCache).mockRejectedValue(new Error("ReserveCacheError"));

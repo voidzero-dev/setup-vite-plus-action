@@ -9,13 +9,13 @@ import { getVitePlusHome } from "./utils.js";
 const INSTALL_URL_SH = "https://viteplus.dev/install.sh";
 const INSTALL_URL_PS1 = "https://viteplus.dev/install.ps1";
 
-export async function installVitePlus(inputs: Inputs): Promise<void> {
+export async function installVitePlus(inputs: Inputs, nodeVersion: string): Promise<void> {
   const { version } = inputs;
 
   // Try to resolve version and restore from cache
   const resolvedVersion = await resolveVersion(version);
   if (resolvedVersion) {
-    const cacheHit = await restoreVpCache(resolvedVersion);
+    const cacheHit = await restoreVpCache(resolvedVersion, nodeVersion);
     if (cacheHit) {
       ensureVitePlusBinInPath();
       info(`${DISPLAY_NAME} restored from cache`);

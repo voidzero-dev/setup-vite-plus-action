@@ -48,7 +48,6 @@ export enum State {
   InstalledVersion = "INSTALLED_VERSION",
   VpCachePrimaryKey = "VP_CACHE_PRIMARY_KEY",
   VpCacheMatchedKey = "VP_CACHE_MATCHED_KEY",
-  VpCacheVersion = "VP_CACHE_VERSION",
 }
 
 // Output keys

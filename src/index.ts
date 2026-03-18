@@ -14,15 +14,16 @@ async function runMain(inputs: Inputs): Promise<void> {
   // Mark that post action should run
   saveState(State.IsPost, "true");
 
-  // Step 1: Install Vite+
-  await installVitePlus(inputs);
-
-  // Step 2: Set up Node.js version if specified
+  // Step 1: Resolve Node.js version (needed for cache key)
   let nodeVersion = inputs.nodeVersion;
   if (!nodeVersion && inputs.nodeVersionFile) {
     nodeVersion = resolveNodeVersionFile(inputs.nodeVersionFile);
   }
 
+  // Step 2: Install Vite+ (with cache keyed by vp version + node version)
+  await installVitePlus(inputs, nodeVersion || "");
+
+  // Step 3: Set up Node.js version if specified
   if (nodeVersion) {
     info(`Setting up Node.js ${nodeVersion} via vp env use...`);
     await exec("vp", ["env", "use", nodeVersion]);
