@@ -1,14 +1,14 @@
 import { info, warning, debug } from "@actions/core";
 import { getExecOutput } from "@actions/exec";
 import { existsSync, readdirSync } from "node:fs";
+import { homedir } from "node:os";
 import { isAbsolute, join, basename } from "node:path";
 import { LockFileType } from "./types.js";
 import type { LockFileInfo } from "./types.js";
 
 export function getVitePlusHome(): string {
   const home = process.platform === "win32" ? process.env.USERPROFILE : process.env.HOME;
-  if (!home) throw new Error("Could not determine home directory");
-  return join(home, ".vite-plus");
+  return join(home || homedir(), ".vite-plus");
 }
 
 export function getWorkspaceDir(): string {
