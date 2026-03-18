@@ -5,6 +5,7 @@ import { installVitePlus } from "./install-viteplus.js";
 import { runViteInstall } from "./run-install.js";
 import { restoreCache } from "./cache-restore.js";
 import { saveCache } from "./cache-save.js";
+import { saveVpCache } from "./cache-vp.js";
 import { State, Outputs } from "./types.js";
 import type { Inputs } from "./types.js";
 import { resolveNodeVersionFile } from "./node-version-file.js";
@@ -59,7 +60,10 @@ async function printViteVersion(): Promise<void> {
 }
 
 async function runPost(inputs: Inputs): Promise<void> {
-  // Save cache if enabled
+  // Save vp binary cache (always)
+  await saveVpCache();
+
+  // Save dependency cache if enabled
   if (inputs.cache) {
     await saveCache();
   }

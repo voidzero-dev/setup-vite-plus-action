@@ -1,17 +1,33 @@
-import { info, debug, addPath } from "@actions/core";
+import { info, addPath } from "@actions/core";
 import { exec } from "@actions/exec";
 import { join } from "node:path";
 import type { Inputs } from "./types.js";
 import { DISPLAY_NAME } from "./types.js";
+import { resolveVersion, restoreVpCache } from "./cache-vp.js";
+import { getVitePlusHome } from "./utils.js";
 
-const INSTALL_URL_SH = "https://staging.viteplus.dev/install.sh";
-const INSTALL_URL_PS1 = "https://staging.viteplus.dev/install.ps1";
+const INSTALL_URL_SH = "https://viteplus.dev/install.sh";
+const INSTALL_URL_PS1 = "https://viteplus.dev/install.ps1";
 
 export async function installVitePlus(inputs: Inputs): Promise<void> {
   const { version } = inputs;
-  info(`Installing ${DISPLAY_NAME}@${version}...`);
 
-  const env = { ...process.env, VITE_PLUS_VERSION: version };
+  // Try to resolve version and restore from cache
+  const resolvedVersion = await resolveVersion(version);
+  if (resolvedVersion) {
+    const cacheHit = await restoreVpCache(resolvedVersion);
+    if (cacheHit) {
+      ensureVitePlusBinInPath();
+      info(`${DISPLAY_NAME} restored from cache`);
+      return;
+    }
+  }
+
+  // Cache miss or resolution failed — install fresh
+  const installVersion = resolvedVersion || version;
+  info(`Installing ${DISPLAY_NAME}@${installVersion}...`);
+
+  const env = { ...process.env, VITE_PLUS_VERSION: installVersion };
   let exitCode: number;
 
   if (process.platform === "win32") {
@@ -32,14 +48,8 @@ export async function installVitePlus(inputs: Inputs): Promise<void> {
 }
 
 function ensureVitePlusBinInPath(): void {
-  const home = process.platform === "win32" ? process.env.USERPROFILE : process.env.HOME;
-  if (!home) {
-    debug("Could not determine home directory");
-    return;
-  }
-  const binDir = join(home, ".vite-plus", "bin");
+  const binDir = join(getVitePlusHome(), "bin");
   if (!process.env.PATH?.includes(binDir)) {
     addPath(binDir);
-    debug(`Added ${binDir} to PATH`);
   }
 }
