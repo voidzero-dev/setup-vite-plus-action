@@ -131,6 +131,61 @@ jobs:
           echo "Installed version: ${{ steps.setup.outputs.version }}"
           echo "Cache hit: ${{ steps.setup.outputs.cache-hit }}"
 
+  test-vp-exec:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+
+      - name: Setup Vite+
+        uses: ./
+        with:
+          version: latest
+          run-install: false
+          cache: false
+
+      - name: Verify vp exec works
+        run: vp exec node -e "console.log('vp exec works')"
+
+      - name: Verify vp run works (list available scripts)
+        run: vp run --list
+        continue-on-error: true
+
+  test-vp-install-and-exec:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+
+      - name: Create test project
+        shell: bash
+        run: |
+          mkdir -p test-project
+          cd test-project
+          echo '{"name":"test-project","private":true,"scripts":{"hello":"node -e \"console.log(1+1)\""}}' > package.json
+
+      - name: Setup Vite+ with install
+        uses: ./
+        with:
+          version: latest
+          run-install: |
+            - cwd: test-project
+          cache: false
+
+      - name: Verify vp exec in project
+        working-directory: test-project
+        run: vp exec node -e "console.log('vp exec in project works')"
+
+      - name: Verify vp run in project
+        working-directory: test-project
+        run: vp run hello
+
   test-registry-url:
     runs-on: ubuntu-latest
     steps:
