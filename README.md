@@ -5,6 +5,7 @@ GitHub Action to set up [Vite+](https://viteplus.dev) (`vp`) with dependency cac
 ## Features
 
 - Install Vite+ globally via official install scripts
+- **Cache the Vite+ installation** to skip re-downloading on subsequent runs
 - Optionally set up a specific Node.js version via `vp env use`
 - Cache project dependencies with auto-detection of lock files
 - Optionally run `vp install` after setup
@@ -117,7 +118,18 @@ jobs:
 
 ## Caching
 
-When `cache: true` is set, the action automatically detects your lock file and caches the appropriate package manager store:
+### Vite+ Installation Cache
+
+The Vite+ CLI installation (`~/.vite-plus/`) is **always cached** automatically — no configuration needed. On cache hit, the install script is skipped entirely, saving 10–60s depending on network conditions.
+
+The cache key includes OS, architecture, Vite+ version, and Node.js version:
+`setup-vp-{OS}-{arch}-{vp-version}-node{node-version}`
+
+When the `version` input is a dist-tag (e.g. `latest`, `alpha`), it is resolved to a precise semver version via the npm registry before constructing the cache key.
+
+### Dependency Cache
+
+When `cache: true` is set, the action additionally caches project dependencies by auto-detecting your lock file:
 
 | Lock File           | Package Manager | Cache Directory |
 | ------------------- | --------------- | --------------- |
@@ -125,7 +137,7 @@ When `cache: true` is set, the action automatically detects your lock file and c
 | `package-lock.json` | npm             | npm cache       |
 | `yarn.lock`         | yarn            | yarn cache      |
 
-The cache key format is: `vite-plus-{OS}-{arch}-{pm}-{lockfile-hash}`
+The dependency cache key format is: `vite-plus-{OS}-{arch}-{pm}-{lockfile-hash}`
 
 ## Example Workflow
 
