@@ -56,6 +56,13 @@ export async function restoreVpCache(version: string, nodeVersion: string): Prom
 }
 
 export async function saveVpCache(): Promise<void> {
+  const forceInstall =
+    process.env.SETUP_VP_FORCE_INSTALL === "true" || process.env.SETUP_VP_FORCE_INSTALL === "1";
+  if (forceInstall) {
+    info("SETUP_VP_FORCE_INSTALL is set, skipping vp cache save");
+    return;
+  }
+
   const primaryKey = getState(State.VpCachePrimaryKey);
   const matchedKey = getState(State.VpCacheMatchedKey);
 
