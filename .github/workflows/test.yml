@@ -13,6 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        version: [latest, alpha]
         force-install: [false, true]
     runs-on: ${{ matrix.os }}
     env:
@@ -20,10 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
-      - name: Setup Vite+
+      - name: Setup Vite+ (${{ matrix.version }})
         uses: ./
         with:
-          version: latest
+          version: ${{ matrix.version }}
           run-install: false
           cache: false
 
@@ -35,6 +36,7 @@ jobs:
       fail-fast: false
       matrix:
         node-version: ["22", "24"]
+        version: [latest, alpha]
         force-install: [false, true]
     runs-on: ubuntu-latest
     env:
@@ -42,9 +44,10 @@ jobs:
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
-      - name: Setup Vite+ with Node.js ${{ matrix.node-version }}
+      - name: Setup Vite+ (${{ matrix.version }}) with Node.js ${{ matrix.node-version }}
         uses: ./
         with:
+          version: ${{ matrix.version }}
           node-version: ${{ matrix.node-version }}
           run-install: false
           cache: false
@@ -63,6 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        version: [latest, alpha]
         force-install: [false, true]
     runs-on: ubuntu-latest
     env:
@@ -77,10 +81,11 @@ jobs:
           echo '{"name":"test-project","private":true}' > package.json
           touch pnpm-lock.yaml
 
-      - name: Setup Vite+ with pnpm cache
+      - name: Setup Vite+ (${{ matrix.version }}) with pnpm cache
         uses: ./
         id: setup
         with:
+          version: ${{ matrix.version }}
           run-install: false
           cache: true
           cache-dependency-path: test-project/pnpm-lock.yaml
@@ -95,6 +100,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        version: [latest, alpha]
         force-install: [false, true]
     runs-on: ubuntu-latest
     env:
@@ -109,10 +115,11 @@ jobs:
           echo '{"name":"test-project","private":true}' > package.json
           echo '{"name":"test-project","lockfileVersion":3}' > package-lock.json
 
-      - name: Setup Vite+ with npm cache
+      - name: Setup Vite+ (${{ matrix.version }}) with npm cache
         uses: ./
         id: setup
         with:
+          version: ${{ matrix.version }}
           run-install: false
           cache: true
           cache-dependency-path: test-project/package-lock.json
@@ -127,6 +134,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        version: [latest, alpha]
         force-install: [false, true]
     runs-on: ubuntu-latest
     env:
@@ -141,10 +149,11 @@ jobs:
           echo '{"name":"test-project","private":true}' > package.json
           touch yarn.lock
 
-      - name: Setup Vite+ with yarn cache
+      - name: Setup Vite+ (${{ matrix.version }}) with yarn cache
         uses: ./
         id: setup
         with:
+          version: ${{ matrix.version }}
           run-install: false
           cache: true
           cache-dependency-path: test-project/yarn.lock
@@ -160,6 +169,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        version: [latest, alpha]
         force-install: [false, true]
     runs-on: ${{ matrix.os }}
     env:
@@ -167,10 +177,10 @@ jobs:
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
-      - name: Setup Vite+
+      - name: Setup Vite+ (${{ matrix.version }})
         uses: ./
         with:
-          version: latest
+          version: ${{ matrix.version }}
           run-install: false
           cache: false
 
@@ -182,6 +192,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        version: [latest, alpha]
         force-install: [false, true]
     runs-on: ${{ matrix.os }}
     env:
@@ -196,10 +207,10 @@ jobs:
           cd test-project
           echo '{"name":"test-project","private":true,"scripts":{"hello":"node -e \"console.log(1+1)\""}}' > package.json
 
-      - name: Setup Vite+ with install
+      - name: Setup Vite+ (${{ matrix.version }}) with install
         uses: ./
         with:
-          version: latest
+          version: ${{ matrix.version }}
           run-install: |
             - cwd: test-project
           cache: false
@@ -216,6 +227,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        version: [latest, alpha]
         force-install: [false, true]
     runs-on: ubuntu-latest
     env:
@@ -223,9 +235,10 @@ jobs:
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
-      - name: Setup Vite+ with registry-url
+      - name: Setup Vite+ (${{ matrix.version }}) with registry-url
         uses: ./
         with:
+          version: ${{ matrix.version }}
           run-install: false
           cache: false
           registry-url: "https://npm.pkg.github.com"
