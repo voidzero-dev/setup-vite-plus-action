@@ -12,6 +12,8 @@ export function getInputs(): Inputs {
     runInstall: parseRunInstall(getInput("run-install")),
     cache: getBooleanInput("cache"),
     cacheDependencyPath: getInput("cache-dependency-path") || undefined,
+    registryUrl: getInput("registry-url") || undefined,
+    scope: getInput("scope") || undefined,
   };
 }
 

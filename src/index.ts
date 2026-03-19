@@ -9,6 +9,7 @@ import { saveVpCache } from "./cache-vp.js";
 import { State, Outputs } from "./types.js";
 import type { Inputs } from "./types.js";
 import { resolveNodeVersionFile } from "./node-version-file.js";
+import { configAuthentication } from "./auth.js";
 
 async function runMain(inputs: Inputs): Promise<void> {
   // Mark that post action should run
@@ -29,12 +30,17 @@ async function runMain(inputs: Inputs): Promise<void> {
     await exec("vp", ["env", "use", nodeVersion]);
   }
 
-  // Step 4: Restore cache if enabled
+  // Step 4: Configure registry authentication if specified
+  if (inputs.registryUrl) {
+    configAuthentication(inputs.registryUrl, inputs.scope);
+  }
+
+  // Step 5: Restore cache if enabled
   if (inputs.cache) {
     await restoreCache(inputs);
   }
 
-  // Step 5: Run vp install if requested
+  // Step 6: Run vp install if requested
   if (inputs.runInstall.length > 0) {
     await runViteInstall(inputs);
   }

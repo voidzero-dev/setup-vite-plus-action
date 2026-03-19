@@ -80,6 +80,21 @@ steps:
         - cwd: ./packages/lib
 ```
 
+### With Private Registry (GitHub Packages)
+
+```yaml
+steps:
+  - uses: actions/checkout@v6
+  - uses: voidzero-dev/setup-vp@v1
+    with:
+      node-version: "22"
+      registry-url: "https://npm.pkg.github.com"
+      scope: "@myorg"
+  - run: vp install
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+```
+
 ### Matrix Testing with Multiple Node.js Versions
 
 ```yaml
@@ -100,14 +115,16 @@ jobs:
 
 ## Inputs
 
-| Input                   | Description                                                                                           | Required | Default       |
-| ----------------------- | ----------------------------------------------------------------------------------------------------- | -------- | ------------- |
-| `version`               | Version of Vite+ to install                                                                           | No       | `latest`      |
-| `node-version`          | Node.js version to install via `vp env use`                                                           | No       | Latest LTS    |
-| `node-version-file`     | Path to file containing Node.js version (`.nvmrc`, `.node-version`, `.tool-versions`, `package.json`) | No       |               |
-| `run-install`           | Run `vp install` after setup. Accepts boolean or YAML object with `cwd`/`args`                        | No       | `true`        |
-| `cache`                 | Enable caching of project dependencies                                                                | No       | `false`       |
-| `cache-dependency-path` | Path to lock file for cache key generation                                                            | No       | Auto-detected |
+| Input                   | Description                                                                                               | Required | Default       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- | -------- | ------------- |
+| `version`               | Version of Vite+ to install                                                                               | No       | `latest`      |
+| `node-version`          | Node.js version to install via `vp env use`                                                               | No       | Latest LTS    |
+| `node-version-file`     | Path to file containing Node.js version (`.nvmrc`, `.node-version`, `.tool-versions`, `package.json`)     | No       |               |
+| `run-install`           | Run `vp install` after setup. Accepts boolean or YAML object with `cwd`/`args`                            | No       | `true`        |
+| `cache`                 | Enable caching of project dependencies                                                                    | No       | `false`       |
+| `cache-dependency-path` | Path to lock file for cache key generation                                                                | No       | Auto-detected |
+| `registry-url`          | Optional registry to set up for auth. Sets the registry in `.npmrc` and reads auth from `NODE_AUTH_TOKEN` | No       |               |
+| `scope`                 | Optional scope for scoped registries. Falls back to repo owner for GitHub Packages                        | No       |               |
 
 ## Outputs
 

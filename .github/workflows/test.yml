@@ -131,6 +131,30 @@ jobs:
           echo "Installed version: ${{ steps.setup.outputs.version }}"
           echo "Cache hit: ${{ steps.setup.outputs.cache-hit }}"
 
+  test-registry-url:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+
+      - name: Setup Vite+ with registry-url
+        uses: ./
+        with:
+          run-install: false
+          cache: false
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@voidzero-dev"
+
+      - name: Verify .npmrc was created
+        run: |
+          echo "NPM_CONFIG_USERCONFIG=$NPM_CONFIG_USERCONFIG"
+          cat "$NPM_CONFIG_USERCONFIG"
+          grep -q "@voidzero-dev:registry=https://npm.pkg.github.com/" "$NPM_CONFIG_USERCONFIG"
+          grep -q "_authToken=\${NODE_AUTH_TOKEN}" "$NPM_CONFIG_USERCONFIG"
+
+      - name: Verify NODE_AUTH_TOKEN is exported
+        run: |
+          echo "NODE_AUTH_TOKEN is set: ${NODE_AUTH_TOKEN:+yes}"
+
   build:
     runs-on: ubuntu-latest
     steps:
