@@ -61,13 +61,11 @@ async function printViteVersion(): Promise<void> {
 }
 
 async function runPost(inputs: Inputs): Promise<void> {
-  // Save vp binary cache (always)
-  await saveVpCache();
-
-  // Save dependency cache if enabled
+  const saves: Promise<void>[] = [saveVpCache()];
   if (inputs.cache) {
-    await saveCache();
+    saves.push(saveCache());
   }
+  await Promise.all(saves);
 }
 
 async function main(): Promise<void> {
