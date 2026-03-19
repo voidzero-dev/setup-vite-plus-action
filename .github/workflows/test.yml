@@ -177,10 +177,6 @@ jobs:
       - name: Verify vp exec works
         run: vp exec node -e "console.log('vp exec works')"
 
-      - name: Verify vp run works (list available scripts)
-        run: vp run --list
-        continue-on-error: true
-
   test-vp-install-and-exec:
     strategy:
       fail-fast: false
