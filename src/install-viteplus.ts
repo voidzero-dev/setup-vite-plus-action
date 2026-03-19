@@ -11,22 +11,16 @@ const INSTALL_URL_PS1 = "https://staging.viteplus.dev/install.ps1";
 
 export async function installVitePlus(inputs: Inputs, nodeVersion: string): Promise<void> {
   const { version } = inputs;
-  const forceInstall =
-    process.env.SETUP_VP_FORCE_INSTALL === "true" || process.env.SETUP_VP_FORCE_INSTALL === "1";
 
   // Try to resolve version and restore from cache
   const resolvedVersion = await resolveVersion(version);
-  if (resolvedVersion && !forceInstall) {
+  if (resolvedVersion) {
     const cacheHit = await restoreVpCache(resolvedVersion, nodeVersion);
     if (cacheHit) {
       ensureVitePlusBinInPath();
       info(`${DISPLAY_NAME} restored from cache`);
       return;
     }
-  }
-
-  if (forceInstall) {
-    info("SETUP_VP_FORCE_INSTALL is set, skipping cache and forcing fresh install");
   }
 
   // Cache miss or resolution failed — install fresh
