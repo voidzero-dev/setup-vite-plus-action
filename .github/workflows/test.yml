@@ -143,7 +143,7 @@ jobs:
       - name: Setup Vite+
         uses: ./
         with:
-          version: latest
+          version: alpha
           run-install: false
           cache: false
 
@@ -173,7 +173,7 @@ jobs:
       - name: Setup Vite+ with install
         uses: ./
         with:
-          version: latest
+          version: alpha
           run-install: |
             - cwd: test-project
           cache: false
