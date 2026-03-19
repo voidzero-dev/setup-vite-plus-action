@@ -29,12 +29,12 @@ async function runMain(inputs: Inputs): Promise<void> {
     await exec("vp", ["env", "use", nodeVersion]);
   }
 
-  // Step 3: Restore cache if enabled
+  // Step 4: Restore cache if enabled
   if (inputs.cache) {
     await restoreCache(inputs);
   }
 
-  // Step 4: Run vp install if requested
+  // Step 5: Run vp install if requested
   if (inputs.runInstall.length > 0) {
     await runViteInstall(inputs);
   }

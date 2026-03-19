@@ -4,25 +4,29 @@ import { arch, platform } from "node:os";
 import { State } from "./types.js";
 import { getVitePlusHome } from "./utils.js";
 
+const SEMVER_RE = /^\d+\.\d+\.\d+/;
+
 /**
- * Resolve "latest" to a specific version number via npm registry.
+ * Resolve version input to a precise semver version.
+ * If the input is already a precise version (e.g. "0.1.8", "1.0.0-beta.1"), return as-is.
+ * Otherwise treat it as a dist-tag (e.g. "latest", "alpha") and resolve via npm registry.
  * Returns undefined on failure so the caller can fall back to installing without cache.
  */
 export async function resolveVersion(versionInput: string): Promise<string | undefined> {
-  if (versionInput && versionInput !== "latest") {
-    return versionInput;
-  }
+  if (!versionInput) return undefined;
+  if (SEMVER_RE.test(versionInput)) return versionInput;
 
   try {
-    const response = await fetch("https://registry.npmjs.org/vite-plus/latest", {
-      signal: AbortSignal.timeout(10_000),
-    });
+    const response = await fetch(
+      `https://registry.npmjs.org/vite-plus/${encodeURIComponent(versionInput)}`,
+      { signal: AbortSignal.timeout(10_000) },
+    );
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = (await response.json()) as { version: string };
-    info(`Resolved latest vp version: ${data.version}`);
+    info(`Resolved vp@${versionInput} to ${data.version}`);
     return data.version;
   } catch (error) {
-    warning(`Failed to resolve latest vp version: ${error}. Skipping vp cache.`);
+    warning(`Failed to resolve vp@${versionInput}: ${error}. Skipping vp cache.`);
     return undefined;
   }
 }

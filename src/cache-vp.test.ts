@@ -48,6 +48,21 @@ describe("resolveVersion", () => {
     );
   });
 
+  it("should resolve dist-tag 'alpha' from npm registry", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(JSON.stringify({ version: "0.3.0-alpha.1" }), { status: 200 }),
+      );
+
+    const result = await resolveVersion("alpha");
+    expect(result).toBe("0.3.0-alpha.1");
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://registry.npmjs.org/vite-plus/alpha",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
   it("should return undefined when fetch fails", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network error"));
 
@@ -58,13 +73,11 @@ describe("resolveVersion", () => {
   it("should return undefined when fetch returns non-ok status", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("Not Found", { status: 404 }));
 
-    const result = await resolveVersion("latest");
+    const result = await resolveVersion("alpha");
     expect(result).toBeUndefined();
   });
 
   it("should return undefined for empty string input", async () => {
-    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("should not be called"));
-
     const result = await resolveVersion("");
     expect(result).toBeUndefined();
   });
