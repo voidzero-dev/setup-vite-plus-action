@@ -18,9 +18,16 @@ export function configAuthentication(registryUrl: string, scope?: string): void 
 }
 
 function writeRegistryToFile(registryUrl: string, fileLocation: string, scope?: string): void {
-  // Auto-detect scope for GitHub Packages registry
-  if (!scope && registryUrl.includes("npm.pkg.github.com")) {
-    scope = process.env.GITHUB_REPOSITORY_OWNER;
+  // Auto-detect scope for GitHub Packages registry using exact host match
+  if (!scope) {
+    try {
+      const url = new URL(registryUrl);
+      if (url.hostname === "npm.pkg.github.com") {
+        scope = process.env.GITHUB_REPOSITORY_OWNER;
+      }
+    } catch {
+      // Invalid URL — skip auto-detection
+    }
   }
 
   if (scope && !scope.startsWith("@")) {
@@ -35,23 +42,27 @@ function writeRegistryToFile(registryUrl: string, fileLocation: string, scope?: 
 
   debug(`Setting auth in ${fileLocation}`);
 
-  let newContents = "";
+  // Compute the auth line prefix for filtering existing entries
+  const authPrefix = registryUrl.replace(/^\w+:/, "").toLowerCase();
+
+  const lines: string[] = [];
   if (existsSync(fileLocation)) {
     const curContents = readFileSync(fileLocation, "utf8");
-    for (const line of curContents.split(EOL)) {
-      // Preserve lines that don't set the scoped registry
-      if (!line.toLowerCase().startsWith(`${scope}registry`)) {
-        newContents += line + EOL;
-      }
+    for (const line of curContents.split(/\r?\n/)) {
+      const lower = line.toLowerCase();
+      // Remove existing registry and auth token lines for this scope/registry
+      if (lower.startsWith(`${scope}registry`)) continue;
+      if (lower.startsWith(authPrefix) && lower.includes("_authtoken")) continue;
+      lines.push(line);
     }
   }
 
   // Auth token line: remove protocol prefix from registry URL
   const authString = registryUrl.replace(/^\w+:/, "") + ":_authToken=${NODE_AUTH_TOKEN}";
   const registryString = `${scope}registry=${registryUrl}`;
-  newContents += `${authString}${EOL}${registryString}`;
+  lines.push(authString, registryString);
 
-  writeFileSync(fileLocation, newContents);
+  writeFileSync(fileLocation, lines.join(EOL));
 
   exportVariable("NPM_CONFIG_USERCONFIG", fileLocation);
   // Export placeholder if NODE_AUTH_TOKEN is not set so npm doesn't error

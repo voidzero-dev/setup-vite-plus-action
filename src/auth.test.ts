@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vite-plus/test";
 import { join } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { EOL } from "node:os";
 import { configAuthentication } from "./auth.js";
 import { exportVariable } from "@actions/core";
 
@@ -94,10 +93,14 @@ describe("configAuthentication", () => {
     );
   });
 
-  it("should preserve existing .npmrc content except registry lines", () => {
+  it("should preserve existing .npmrc content except registry and auth lines", () => {
     vi.mocked(existsSync).mockReturnValue(true);
     vi.mocked(readFileSync).mockReturnValue(
-      `always-auth=true${EOL}registry=https://old.reg/${EOL}`,
+      [
+        "always-auth=true",
+        "registry=https://old.reg/",
+        "//old.reg/:_authToken=${NODE_AUTH_TOKEN}",
+      ].join("\n"),
     );
 
     configAuthentication("https://registry.npmjs.org/");
@@ -106,6 +109,45 @@ describe("configAuthentication", () => {
     expect(written).toContain("always-auth=true");
     expect(written).not.toContain("https://old.reg/");
     expect(written).toContain("registry=https://registry.npmjs.org/");
+  });
+
+  it("should remove existing auth token lines for the same registry", () => {
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(readFileSync).mockReturnValue(
+      [
+        "//registry.npmjs.org/:_authToken=old-token",
+        "registry=https://registry.npmjs.org/",
+        "other-config=true",
+      ].join("\n"),
+    );
+
+    configAuthentication("https://registry.npmjs.org/");
+
+    const written = vi.mocked(writeFileSync).mock.calls[0]![1] as string;
+    expect(written).not.toContain("old-token");
+    expect(written).toContain("other-config=true");
+    expect(written).toContain("//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}");
+  });
+
+  it("should handle Windows-style line endings in existing .npmrc", () => {
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(readFileSync).mockReturnValue("always-auth=true\r\nregistry=https://old.reg/\r\n");
+
+    configAuthentication("https://registry.npmjs.org/");
+
+    const written = vi.mocked(writeFileSync).mock.calls[0]![1] as string;
+    expect(written).toContain("always-auth=true");
+    expect(written).not.toContain("https://old.reg/");
+  });
+
+  it("should not auto-detect scope for lookalike GitHub Packages URLs", () => {
+    vi.stubEnv("GITHUB_REPOSITORY_OWNER", "voidzero-dev");
+
+    configAuthentication("https://npm.pkg.github.com.evil.example");
+
+    const written = vi.mocked(writeFileSync).mock.calls[0]![1] as string;
+    // Should NOT have scoped registry — the host doesn't match exactly
+    expect(written).not.toContain("@voidzero-dev:");
   });
 
   it("should export NPM_CONFIG_USERCONFIG", () => {
