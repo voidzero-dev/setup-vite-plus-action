@@ -150,6 +150,10 @@ describe("configAuthentication", () => {
     expect(written).not.toContain("@voidzero-dev:");
   });
 
+  it("should throw on invalid URL", () => {
+    expect(() => configAuthentication("not-a-url")).toThrow("Invalid registry-url");
+  });
+
   it("should export NPM_CONFIG_USERCONFIG", () => {
     configAuthentication("https://registry.npmjs.org/");
 

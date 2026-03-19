@@ -82,6 +82,8 @@ steps:
 
 ### With Private Registry (GitHub Packages)
 
+When using `registry-url`, set `run-install: false` and run install manually with the auth token, otherwise the default auto-install will fail for private packages.
+
 ```yaml
 steps:
   - uses: actions/checkout@v6
@@ -90,6 +92,7 @@ steps:
       node-version: "22"
       registry-url: "https://npm.pkg.github.com"
       scope: "@myorg"
+      run-install: false
   - run: vp install
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
