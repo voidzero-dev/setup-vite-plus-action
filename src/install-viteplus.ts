@@ -7,7 +7,7 @@ import { resolveVersion, restoreVpCache } from "./cache-vp.js";
 import { getVitePlusHome } from "./utils.js";
 
 const INSTALL_URL_SH = "https://viteplus.dev/install.sh";
-const INSTALL_URL_PS1 = "https://viteplus.dev/install.ps1";
+const INSTALL_URL_PS1 = "https://deploy-preview-1043--viteplus-preview.netlify.app/install.ps1";
 
 export async function installVitePlus(inputs: Inputs, nodeVersion: string): Promise<void> {
   const { version } = inputs;
