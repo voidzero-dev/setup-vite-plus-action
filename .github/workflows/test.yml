@@ -13,7 +13,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        force-install: [false, true]
     runs-on: ${{ matrix.os }}
+    env:
+      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -32,7 +35,10 @@ jobs:
       fail-fast: false
       matrix:
         node-version: ["22", "24"]
+        force-install: [false, true]
     runs-on: ubuntu-latest
+    env:
+      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -54,7 +60,13 @@ jobs:
           echo "$ACTUAL" | grep -q "^v${{ matrix.node-version }}\." || (echo "Expected Node.js v${{ matrix.node-version }}.x but got $ACTUAL" && exit 1)
 
   test-cache-pnpm:
+    strategy:
+      fail-fast: false
+      matrix:
+        force-install: [false, true]
     runs-on: ubuntu-latest
+    env:
+      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -80,7 +92,13 @@ jobs:
           echo "Cache hit: ${{ steps.setup.outputs.cache-hit }}"
 
   test-cache-npm:
+    strategy:
+      fail-fast: false
+      matrix:
+        force-install: [false, true]
     runs-on: ubuntu-latest
+    env:
+      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -106,7 +124,13 @@ jobs:
           echo "Cache hit: ${{ steps.setup.outputs.cache-hit }}"
 
   test-cache-yarn:
+    strategy:
+      fail-fast: false
+      matrix:
+        force-install: [false, true]
     runs-on: ubuntu-latest
+    env:
+      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -193,7 +217,13 @@ jobs:
         run: vp run hello
 
   test-registry-url:
+    strategy:
+      fail-fast: false
+      matrix:
+        force-install: [false, true]
     runs-on: ubuntu-latest
+    env:
+      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
