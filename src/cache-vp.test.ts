@@ -83,9 +83,7 @@ describe("resolveVersion", () => {
   });
 });
 
-// FIXME: Re-enable these tests after vp CLI caching is re-enabled.
-// Caching is temporarily disabled due to Windows `Cannot find module 'which'` issue (#10).
-describe.skip("restoreVpCache", () => {
+describe("restoreVpCache", () => {
   beforeEach(() => {
     vi.stubEnv("RUNNER_OS", "Linux");
     vi.stubEnv("HOME", "/home/runner");
@@ -147,9 +145,7 @@ describe.skip("restoreVpCache", () => {
   });
 });
 
-// FIXME: Re-enable these tests after vp CLI caching is re-enabled.
-// Caching is temporarily disabled due to Windows `Cannot find module 'which'` issue (#10).
-describe.skip("saveVpCache", () => {
+describe("saveVpCache", () => {
   beforeEach(() => {
     vi.stubEnv("HOME", "/home/runner");
   });

@@ -32,10 +32,10 @@ export async function resolveVersion(versionInput: string): Promise<string | und
 }
 
 export async function restoreVpCache(version: string, nodeVersion: string): Promise<boolean> {
-  // FIXME: Re-enable vp CLI caching after the new version of vite-plus is released
-  // that fixes the Windows `Cannot find module 'which'` issue (#10).
-  info("Vp CLI caching is temporarily disabled");
-  return false;
+  if (process.env.SETUP_VP_FORCE_INSTALL === "true") {
+    info("Skipping vp cache restore (SETUP_VP_FORCE_INSTALL=true)");
+    return false;
+  }
 
   const vpHome = getVitePlusHome();
   const runnerOS = process.env.RUNNER_OS || platform();
@@ -61,11 +61,6 @@ export async function restoreVpCache(version: string, nodeVersion: string): Prom
 }
 
 export async function saveVpCache(): Promise<void> {
-  // FIXME: Re-enable vp CLI caching after the new version of vite-plus is released
-  // that fixes the Windows `Cannot find module 'which'` issue (#10).
-  info("Vp CLI caching is temporarily disabled, skipping save");
-  return;
-
   const primaryKey = getState(State.VpCachePrimaryKey);
   const matchedKey = getState(State.VpCacheMatchedKey);
 
