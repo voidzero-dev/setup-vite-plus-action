@@ -5,7 +5,6 @@ GitHub Action to set up [Vite+](https://viteplus.dev) (`vp`) with dependency cac
 ## Features
 
 - Install Vite+ globally via official install scripts
-- **Cache the Vite+ installation** to skip re-downloading on subsequent runs
 - Optionally set up a specific Node.js version via `vp env use`
 - Cache project dependencies with auto-detection of lock files
 - Optionally run `vp install` after setup
@@ -137,15 +136,6 @@ jobs:
 | `cache-hit` | Boolean indicating if cache was restored |
 
 ## Caching
-
-### Vite+ Installation Cache
-
-The Vite+ CLI installation (`~/.vite-plus/`) is cached automatically on a best-effort basis — no configuration needed. If a cache key can be constructed for the resolved version, it will be saved and reused on subsequent runs. On cache hit, the install script is skipped entirely, saving 10–60s depending on network conditions.
-
-The cache key includes OS, architecture, Vite+ version, and Node.js version:
-`setup-vp-{OS}-{arch}-{vp-version}-node{node-version}`
-
-When the `version` input is a dist-tag (e.g. `latest`, `alpha`), it is resolved to a precise semver version via the npm registry before constructing the cache key. If version resolution fails (for example, due to npm registry/network issues or an unresolvable version/tag), no cache key is saved and the Vite+ installation will not be cached for that run.
 
 ### Dependency Cache
 
