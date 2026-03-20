@@ -14,10 +14,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         version: [latest, alpha]
-        force-install: [false, true]
     runs-on: ${{ matrix.os }}
-    env:
-      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -37,10 +34,7 @@ jobs:
       matrix:
         node-version: ["22", "24"]
         version: [latest, alpha]
-        force-install: [false, true]
     runs-on: ubuntu-latest
-    env:
-      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -67,10 +61,7 @@ jobs:
       fail-fast: false
       matrix:
         version: [latest, alpha]
-        force-install: [false, true]
     runs-on: ubuntu-latest
-    env:
-      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -101,10 +92,7 @@ jobs:
       fail-fast: false
       matrix:
         version: [latest, alpha]
-        force-install: [false, true]
     runs-on: ubuntu-latest
-    env:
-      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -135,10 +123,7 @@ jobs:
       fail-fast: false
       matrix:
         version: [latest, alpha]
-        force-install: [false, true]
     runs-on: ubuntu-latest
-    env:
-      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -170,10 +155,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         version: [latest, alpha]
-        force-install: [false, true]
     runs-on: ${{ matrix.os }}
-    env:
-      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -193,10 +175,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         version: [latest, alpha]
-        force-install: [false, true]
     runs-on: ${{ matrix.os }}
-    env:
-      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
@@ -228,10 +207,7 @@ jobs:
       fail-fast: false
       matrix:
         version: [latest, alpha]
-        force-install: [false, true]
     runs-on: ubuntu-latest
-    env:
-      SETUP_VP_FORCE_INSTALL: ${{ matrix.force-install }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 

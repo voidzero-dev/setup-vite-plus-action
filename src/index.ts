@@ -5,7 +5,6 @@ import { installVitePlus } from "./install-viteplus.js";
 import { runViteInstall } from "./run-install.js";
 import { restoreCache } from "./cache-restore.js";
 import { saveCache } from "./cache-save.js";
-import { saveVpCache } from "./cache-vp.js";
 import { State, Outputs } from "./types.js";
 import type { Inputs } from "./types.js";
 import { resolveNodeVersionFile } from "./node-version-file.js";
@@ -21,8 +20,8 @@ async function runMain(inputs: Inputs): Promise<void> {
     nodeVersion = resolveNodeVersionFile(inputs.nodeVersionFile);
   }
 
-  // Step 2: Install Vite+ (with cache keyed by vp version + node version)
-  await installVitePlus(inputs, nodeVersion || "");
+  // Step 2: Install Vite+
+  await installVitePlus(inputs);
 
   // Step 3: Set up Node.js version if specified
   if (nodeVersion) {
@@ -67,11 +66,9 @@ async function printViteVersion(): Promise<void> {
 }
 
 async function runPost(inputs: Inputs): Promise<void> {
-  const saves: Promise<void>[] = [saveVpCache()];
   if (inputs.cache) {
-    saves.push(saveCache());
+    await saveCache();
   }
-  await Promise.all(saves);
 }
 
 async function main(): Promise<void> {
