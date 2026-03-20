@@ -41,7 +41,7 @@ outputs:
     description: "Boolean indicating if cache was restored"
 
 runs:
-  using: node20
+  using: node24
   main: dist/index.mjs
   post: dist/index.mjs
   post-if: success()
