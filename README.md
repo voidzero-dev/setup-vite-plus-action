@@ -5,7 +5,6 @@ GitHub Action to set up [Vite+](https://viteplus.dev) (`vp`) with dependency cac
 ## Features
 
 - Install Vite+ globally via official install scripts
-- **Cache the Vite+ installation** to skip re-downloading on subsequent runs
 - Optionally set up a specific Node.js version via `vp env use`
 - Cache project dependencies with auto-detection of lock files
 - Optionally run `vp install` after setup
