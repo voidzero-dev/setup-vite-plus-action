@@ -56,18 +56,16 @@ const LOCK_FILES: Array<{ filename: string; type: LockFileType }> = [
 ];
 
 /**
- * Detect a lock file in the provided search directory.
- * Defaults to searching in the workspace root.
+ * Detect a lock file in the provided workspace directory.
+ * Defaults to the GitHub workspace root.
  */
 export function detectLockFile(
   explicitPath?: string,
-  searchDir = getWorkspaceDir(),
+  workspace = getWorkspaceDir(),
 ): LockFileInfo | undefined {
-  const workspace = searchDir;
-
   // If explicit path provided, use it
   if (explicitPath) {
-    const fullPath = resolvePath(explicitPath, searchDir);
+    const fullPath = resolvePath(explicitPath, workspace);
 
     if (existsSync(fullPath)) {
       const filename = basename(fullPath);
@@ -85,7 +83,7 @@ export function detectLockFile(
     return undefined;
   }
 
-  // Auto-detect: search for lock files in workspace root
+  // Auto-detect: search for lock files in the provided workspace directory
   const workspaceContents = readdirSync(workspace);
 
   for (const lockInfo of LOCK_FILES) {
