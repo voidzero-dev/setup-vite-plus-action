@@ -7,7 +7,7 @@ import {
   getConfiguredProjectDir,
   getCacheDirectories,
   getInstallCwd,
-  resolveProjectPath,
+  resolvePath,
 } from "./utils.js";
 import { LockFileType } from "./types.js";
 
@@ -232,7 +232,7 @@ describe("getConfiguredProjectDir", () => {
   });
 });
 
-describe("resolveProjectPath", () => {
+describe("resolvePath", () => {
   const mockWorkspace = "/test/workspace";
 
   beforeEach(() => {
@@ -244,22 +244,19 @@ describe("resolveProjectPath", () => {
   });
 
   it("should resolve relative paths from working-directory", () => {
-    expect(
-      resolveProjectPath(
-        {
-          version: "latest",
-          nodeVersion: undefined,
-          nodeVersionFile: undefined,
-          workingDirectory: "web",
-          runInstall: [],
-          cache: false,
-          cacheDependencyPath: undefined,
-          registryUrl: undefined,
-          scope: undefined,
-        },
-        ".nvmrc",
-      ),
-    ).toBe("/test/workspace/web/.nvmrc");
+    const projectDir = getConfiguredProjectDir({
+      version: "latest",
+      nodeVersion: undefined,
+      nodeVersionFile: undefined,
+      workingDirectory: "web",
+      runInstall: [],
+      cache: false,
+      cacheDependencyPath: undefined,
+      registryUrl: undefined,
+      scope: undefined,
+    });
+
+    expect(resolvePath(".nvmrc", projectDir)).toBe("/test/workspace/web/.nvmrc");
   });
 });
 

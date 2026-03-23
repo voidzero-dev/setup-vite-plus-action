@@ -26,12 +26,9 @@ export function getConfiguredProjectDir(inputs: Inputs): string {
     : getWorkspaceDir();
 }
 
-export function resolveProjectPath(inputs: Inputs, filePath: string): string {
-  return resolvePath(filePath, getConfiguredProjectDir(inputs));
-}
-
 export function getInstallCwd(inputs: Inputs, cwd?: string): string {
-  return cwd ? resolveProjectPath(inputs, cwd) : getConfiguredProjectDir(inputs);
+  const projectDir = getConfiguredProjectDir(inputs);
+  return cwd ? resolvePath(cwd, projectDir) : projectDir;
 }
 
 // Lock file patterns in priority order
