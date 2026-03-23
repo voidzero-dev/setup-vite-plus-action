@@ -5,9 +5,8 @@ import { getExecOutput } from "@actions/exec";
 import {
   detectLockFile,
   getConfiguredProjectDir,
-  getCacheDirectoryCwd,
   getCacheDirectories,
-  getProjectCwd,
+  getInstallCwd,
   resolveProjectPath,
 } from "./utils.js";
 import { LockFileType } from "./types.js";
@@ -98,6 +97,18 @@ describe("detectLockFile", () => {
       expect(result).toEqual({
         type: LockFileType.Pnpm,
         path: absolutePath,
+        filename: "pnpm-lock.yaml",
+      });
+    });
+
+    it("should resolve relative explicit paths from the provided search directory", () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+
+      const result = detectLockFile("pnpm-lock.yaml", "/test/workspace/web");
+
+      expect(result).toEqual({
+        type: LockFileType.Pnpm,
+        path: "/test/workspace/web/pnpm-lock.yaml",
         filename: "pnpm-lock.yaml",
       });
     });
@@ -252,26 +263,6 @@ describe("resolveProjectPath", () => {
   });
 });
 
-describe("getCacheDirectoryCwd", () => {
-  const mockWorkspace = "/test/workspace";
-
-  beforeEach(() => {
-    vi.stubEnv("GITHUB_WORKSPACE", mockWorkspace);
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it("should resolve cache cwd from relative lock file path", () => {
-    expect(getCacheDirectoryCwd("web/pnpm-lock.yaml")).toBe("/test/workspace/web");
-  });
-
-  it("should resolve cache cwd from absolute lock file path", () => {
-    expect(getCacheDirectoryCwd("/custom/path/pnpm-lock.yaml")).toBe("/custom/path");
-  });
-});
-
 describe("getCacheDirectories", () => {
   afterEach(() => {
     vi.resetAllMocks();
@@ -299,7 +290,7 @@ describe("getCacheDirectories", () => {
   });
 });
 
-describe("getProjectCwd", () => {
+describe("getInstallCwd", () => {
   const mockWorkspace = "/test/workspace";
 
   beforeEach(() => {
@@ -310,41 +301,44 @@ describe("getProjectCwd", () => {
     vi.unstubAllEnvs();
   });
 
-  it("should prefer cache-dependency-path over run-install cwd", () => {
+  it("should default to the configured project directory", () => {
     expect(
-      getProjectCwd({
+      getInstallCwd({
         version: "latest",
         nodeVersion: undefined,
         nodeVersionFile: undefined,
-        workingDirectory: undefined,
-        runInstall: [{ cwd: "./app" }],
+        workingDirectory: "web",
+        runInstall: [],
         cache: true,
-        cacheDependencyPath: "web/pnpm-lock.yaml",
+        cacheDependencyPath: undefined,
         registryUrl: undefined,
         scope: undefined,
       }),
     ).toBe("/test/workspace/web");
   });
 
-  it("should fall back to run-install cwd when cache-dependency-path is not set", () => {
+  it("should resolve override cwd relative to working-directory", () => {
     expect(
-      getProjectCwd({
-        version: "latest",
-        nodeVersion: undefined,
-        nodeVersionFile: undefined,
-        workingDirectory: undefined,
-        runInstall: [{ cwd: "./app" }],
-        cache: false,
-        cacheDependencyPath: undefined,
-        registryUrl: undefined,
-        scope: undefined,
-      }),
-    ).toBe("/test/workspace/app");
+      getInstallCwd(
+        {
+          version: "latest",
+          nodeVersion: undefined,
+          nodeVersionFile: undefined,
+          workingDirectory: "web",
+          runInstall: [],
+          cache: false,
+          cacheDependencyPath: undefined,
+          registryUrl: undefined,
+          scope: undefined,
+        },
+        "packages/app",
+      ),
+    ).toBe("/test/workspace/web/packages/app");
   });
 
-  it("should fall back to workspace root when no project-specific cwd is provided", () => {
+  it("should fall back to workspace root when no project directory is configured", () => {
     expect(
-      getProjectCwd({
+      getInstallCwd({
         version: "latest",
         nodeVersion: undefined,
         nodeVersionFile: undefined,
@@ -358,19 +352,22 @@ describe("getProjectCwd", () => {
     ).toBe("/test/workspace");
   });
 
-  it("should prefer working-directory over cache-dependency-path", () => {
+  it("should keep absolute override cwd as-is", () => {
     expect(
-      getProjectCwd({
-        version: "latest",
-        nodeVersion: undefined,
-        nodeVersionFile: undefined,
-        workingDirectory: "web",
-        runInstall: [{ cwd: "./app" }],
-        cache: true,
-        cacheDependencyPath: "pkg/pnpm-lock.yaml",
-        registryUrl: undefined,
-        scope: undefined,
-      }),
-    ).toBe("/test/workspace/web");
+      getInstallCwd(
+        {
+          version: "latest",
+          nodeVersion: undefined,
+          nodeVersionFile: undefined,
+          workingDirectory: "web",
+          runInstall: [],
+          cache: false,
+          cacheDependencyPath: undefined,
+          registryUrl: undefined,
+          scope: undefined,
+        },
+        "/custom/path/app",
+      ),
+    ).toBe("/custom/path/app");
   });
 });

@@ -2,14 +2,10 @@ import { restoreCache as restoreCacheAction } from "@actions/cache";
 import { hashFiles } from "@actions/glob";
 import { warning, info, debug, saveState, setOutput } from "@actions/core";
 import { arch, platform } from "node:os";
+import { dirname } from "node:path";
 import type { Inputs } from "./types.js";
 import { State, Outputs } from "./types.js";
-import {
-  detectLockFile,
-  getCacheDirectories,
-  getCacheDirectoryCwd,
-  getConfiguredProjectDir,
-} from "./utils.js";
+import { detectLockFile, getCacheDirectories, getConfiguredProjectDir } from "./utils.js";
 
 export async function restoreCache(inputs: Inputs): Promise<void> {
   const projectDir = getConfiguredProjectDir(inputs);
@@ -26,7 +22,7 @@ export async function restoreCache(inputs: Inputs): Promise<void> {
   }
 
   info(`Using lock file: ${lockFile.path}`);
-  const cacheCwd = getCacheDirectoryCwd(lockFile.path);
+  const cacheCwd = dirname(lockFile.path);
   info(`Resolving dependency cache directory in: ${cacheCwd}`);
 
   // Get cache directories based on lock file type

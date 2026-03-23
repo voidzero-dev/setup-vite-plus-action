@@ -1,7 +1,7 @@
 import { info } from "@actions/core";
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
-import { resolvePath } from "./utils.js";
+import { getWorkspaceDir, resolvePath } from "./utils.js";
 
 /**
  * Resolve a Node.js version from a version file.
@@ -9,9 +9,7 @@ import { resolvePath } from "./utils.js";
  * Supports: .nvmrc, .node-version, .tool-versions, package.json
  */
 export function resolveNodeVersionFile(filePath: string, baseDir?: string): string {
-  const fullPath = baseDir
-    ? resolvePath(filePath, baseDir)
-    : resolvePath(filePath, process.env.GITHUB_WORKSPACE || process.cwd());
+  const fullPath = resolvePath(filePath, baseDir || getWorkspaceDir());
 
   let content: string;
   try {

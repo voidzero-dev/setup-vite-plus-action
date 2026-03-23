@@ -9,7 +9,7 @@ import { State, Outputs } from "./types.js";
 import type { Inputs } from "./types.js";
 import { resolveNodeVersionFile } from "./node-version-file.js";
 import { configAuthentication } from "./auth.js";
-import { getConfiguredProjectDir, getProjectCwd } from "./utils.js";
+import { getConfiguredProjectDir } from "./utils.js";
 
 async function runMain(inputs: Inputs): Promise<void> {
   // Mark that post action should run
@@ -46,7 +46,7 @@ async function runMain(inputs: Inputs): Promise<void> {
   }
 
   // Print version info at the end
-  await printViteVersion(getProjectCwd(inputs));
+  await printViteVersion(getConfiguredProjectDir(inputs));
 }
 
 async function printViteVersion(cwd: string): Promise<void> {

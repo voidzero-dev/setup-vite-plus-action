@@ -2,7 +2,7 @@ import { info, warning, debug } from "@actions/core";
 import { getExecOutput } from "@actions/exec";
 import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, join, basename, dirname } from "node:path";
+import { isAbsolute, join, basename } from "node:path";
 import type { Inputs } from "./types.js";
 import { LockFileType } from "./types.js";
 import type { LockFileInfo } from "./types.js";
@@ -24,10 +24,6 @@ export function resolvePath(filePath: string, baseDir: string): string {
   return isAbsolute(filePath) ? filePath : join(baseDir, filePath);
 }
 
-export function getCacheDirectoryCwd(lockFilePath: string): string {
-  return dirname(resolveWorkspacePath(lockFilePath));
-}
-
 export function getConfiguredProjectDir(inputs: Inputs): string {
   return inputs.workingDirectory
     ? resolveWorkspacePath(inputs.workingDirectory)
@@ -38,21 +34,8 @@ export function resolveProjectPath(inputs: Inputs, filePath: string): string {
   return resolvePath(filePath, getConfiguredProjectDir(inputs));
 }
 
-export function getProjectCwd(inputs: Inputs): string {
-  if (inputs.workingDirectory) {
-    return resolveWorkspacePath(inputs.workingDirectory);
-  }
-
-  if (inputs.cacheDependencyPath) {
-    return dirname(resolveProjectPath(inputs, inputs.cacheDependencyPath));
-  }
-
-  const runInstallCwd = inputs.runInstall[0]?.cwd;
-  if (runInstallCwd) {
-    return resolveWorkspacePath(runInstallCwd);
-  }
-
-  return getWorkspaceDir();
+export function getInstallCwd(inputs: Inputs, cwd?: string): string {
+  return cwd ? resolveProjectPath(inputs, cwd) : getConfiguredProjectDir(inputs);
 }
 
 // Lock file patterns in priority order

@@ -142,6 +142,8 @@ jobs:
 | `registry-url`          | Optional registry to set up for auth. Sets the registry in `.npmrc` and reads auth from `NODE_AUTH_TOKEN`   | No       |                |
 | `scope`                 | Optional scope for scoped registries. Falls back to repo owner for GitHub Packages                          | No       |                |
 
+When `working-directory` is set, relative `run-install.cwd`, `node-version-file`, and `cache-dependency-path` values are resolved from that directory.
+
 ## Outputs
 
 | Output      | Description                              |
@@ -163,7 +165,7 @@ When `cache: true` is set, the action additionally caches project dependencies b
 
 The dependency cache key format is: `vite-plus-{OS}-{arch}-{pm}-{lockfile-hash}`
 
-When `working-directory` is set, lockfile auto-detection runs in that directory. Relative `node-version-file` and `cache-dependency-path` values are also resolved from that directory.
+When `working-directory` is set, lockfile auto-detection runs in that directory.
 
 When `cache-dependency-path` points to a lock file in a subdirectory, the action resolves the package-manager cache directory from that lock file's directory.
 

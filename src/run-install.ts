@@ -1,7 +1,7 @@
 import { startGroup, endGroup, setFailed, info } from "@actions/core";
 import { exec } from "@actions/exec";
 import type { Inputs } from "./types.js";
-import { getProjectCwd, resolveWorkspacePath } from "./utils.js";
+import { getInstallCwd } from "./utils.js";
 
 export async function runViteInstall(inputs: Inputs): Promise<void> {
   for (const options of inputs.runInstall) {
@@ -10,7 +10,7 @@ export async function runViteInstall(inputs: Inputs): Promise<void> {
       args.push(...options.args);
     }
 
-    const cwd = options.cwd ? resolveWorkspacePath(options.cwd) : getProjectCwd(inputs);
+    const cwd = getInstallCwd(inputs, options.cwd);
     const cmdStr = `vp ${args.join(" ")}`;
 
     startGroup(`Running ${cmdStr} in ${cwd}...`);
