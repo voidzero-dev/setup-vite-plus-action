@@ -16,17 +16,13 @@ export function getWorkspaceDir(): string {
   return process.env.GITHUB_WORKSPACE || process.cwd();
 }
 
-export function resolveWorkspacePath(filePath: string): string {
-  return isAbsolute(filePath) ? filePath : join(getWorkspaceDir(), filePath);
-}
-
 export function resolvePath(filePath: string, baseDir: string): string {
   return isAbsolute(filePath) ? filePath : join(baseDir, filePath);
 }
 
 export function getConfiguredProjectDir(inputs: Inputs): string {
   return inputs.workingDirectory
-    ? resolveWorkspacePath(inputs.workingDirectory)
+    ? resolvePath(inputs.workingDirectory, getWorkspaceDir())
     : getWorkspaceDir();
 }
 

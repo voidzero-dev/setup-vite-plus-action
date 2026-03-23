@@ -51,7 +51,7 @@ describe("detectLockFile", () => {
 
       expect(result).toEqual({
         type: LockFileType.Pnpm,
-        path: join(mockWorkspace, "pnpm-lock.yaml"),
+        path: "/test/workspace/pnpm-lock.yaml",
         filename: "pnpm-lock.yaml",
       });
     });
@@ -63,7 +63,7 @@ describe("detectLockFile", () => {
 
       expect(result).toEqual({
         type: LockFileType.Npm,
-        path: join(mockWorkspace, "package-lock.json"),
+        path: "/test/workspace/package-lock.json",
         filename: "package-lock.json",
       });
     });
@@ -75,7 +75,7 @@ describe("detectLockFile", () => {
 
       expect(result).toEqual({
         type: LockFileType.Yarn,
-        path: join(mockWorkspace, "yarn.lock"),
+        path: "/test/workspace/yarn.lock",
         filename: "yarn.lock",
       });
     });
