@@ -14,11 +14,12 @@ import { getConfiguredProjectDir } from "./utils.js";
 async function runMain(inputs: Inputs): Promise<void> {
   // Mark that post action should run
   saveState(State.IsPost, "true");
+  const projectDir = getConfiguredProjectDir(inputs);
 
   // Step 1: Resolve Node.js version (needed for cache key)
   let nodeVersion = inputs.nodeVersion;
   if (!nodeVersion && inputs.nodeVersionFile) {
-    nodeVersion = resolveNodeVersionFile(inputs.nodeVersionFile, getConfiguredProjectDir(inputs));
+    nodeVersion = resolveNodeVersionFile(inputs.nodeVersionFile, projectDir);
   }
 
   // Step 2: Install Vite+
@@ -46,7 +47,7 @@ async function runMain(inputs: Inputs): Promise<void> {
   }
 
   // Print version info at the end
-  await printViteVersion(getConfiguredProjectDir(inputs));
+  await printViteVersion(projectDir);
 }
 
 async function printViteVersion(cwd: string): Promise<void> {
