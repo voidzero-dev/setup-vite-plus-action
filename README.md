@@ -149,6 +149,8 @@ When `cache: true` is set, the action additionally caches project dependencies b
 
 The dependency cache key format is: `vite-plus-{OS}-{arch}-{pm}-{lockfile-hash}`
 
+When `cache-dependency-path` points to a lock file in a subdirectory, the action resolves the package-manager cache directory from that lock file's directory.
+
 ## Example Workflow
 
 ```yaml

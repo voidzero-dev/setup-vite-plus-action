@@ -4,23 +4,30 @@ import { warning, info, debug, saveState, setOutput } from "@actions/core";
 import { arch, platform } from "node:os";
 import type { Inputs } from "./types.js";
 import { State, Outputs } from "./types.js";
-import { detectLockFile, getCacheDirectories } from "./utils.js";
+import { detectLockFile, getCacheDirectories, getCacheDirectoryCwd } from "./utils.js";
 
 export async function restoreCache(inputs: Inputs): Promise<void> {
   // Detect lock file
   const lockFile = detectLockFile(inputs.cacheDependencyPath);
   if (!lockFile) {
-    warning("No lock file found. Skipping cache restore.");
+    const message = inputs.cacheDependencyPath
+      ? `No lock file found for cache-dependency-path: ${inputs.cacheDependencyPath}. Skipping cache restore.`
+      : "No lock file found in workspace root. Skipping cache restore.";
+    warning(message);
     setOutput(Outputs.CacheHit, false);
     return;
   }
 
   info(`Using lock file: ${lockFile.path}`);
+  const cacheCwd = getCacheDirectoryCwd(lockFile.path);
+  info(`Resolving dependency cache directory in: ${cacheCwd}`);
 
   // Get cache directories based on lock file type
-  const cachePaths = await getCacheDirectories(lockFile.type);
+  const cachePaths = await getCacheDirectories(lockFile.type, cacheCwd);
   if (!cachePaths.length) {
-    warning("No cache directories found. Skipping cache restore.");
+    warning(
+      `No cache directories found for ${lockFile.type} in ${cacheCwd}. Skipping cache restore.`,
+    );
     setOutput(Outputs.CacheHit, false);
     return;
   }

@@ -2,7 +2,7 @@ import { info, warning, debug } from "@actions/core";
 import { getExecOutput } from "@actions/exec";
 import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, join, basename } from "node:path";
+import { isAbsolute, join, basename, dirname } from "node:path";
 import { LockFileType } from "./types.js";
 import type { LockFileInfo } from "./types.js";
 
@@ -17,6 +17,10 @@ export function getWorkspaceDir(): string {
 
 export function resolveWorkspacePath(filePath: string): string {
   return isAbsolute(filePath) ? filePath : join(getWorkspaceDir(), filePath);
+}
+
+export function getCacheDirectoryCwd(lockFilePath: string): string {
+  return dirname(resolveWorkspacePath(lockFilePath));
 }
 
 // Lock file patterns in priority order
@@ -86,21 +90,26 @@ function inferLockFileType(fullPath: string, filename: string): LockFileInfo {
 /**
  * Get cache directories based on package manager type
  */
-export async function getCacheDirectories(lockType: LockFileType): Promise<string[]> {
+export async function getCacheDirectories(lockType: LockFileType, cwd: string): Promise<string[]> {
   switch (lockType) {
     case LockFileType.Npm:
     case LockFileType.Pnpm:
     case LockFileType.Yarn:
-      return getViteCacheDir();
+      return getViteCacheDir(cwd);
     default:
       return [];
   }
 }
 
-async function getCommandOutput(command: string, args: string[]): Promise<string | undefined> {
+async function getCommandOutput(
+  command: string,
+  args: string[],
+  options?: { cwd?: string },
+): Promise<string | undefined> {
   const cmdStr = `${command} ${args.join(" ")}`;
   try {
     const result = await getExecOutput(command, args, {
+      cwd: options?.cwd,
       silent: true,
       ignoreReturnCode: true,
     });
@@ -115,7 +124,7 @@ async function getCommandOutput(command: string, args: string[]): Promise<string
   }
 }
 
-async function getViteCacheDir(): Promise<string[]> {
-  const cacheDir = await getCommandOutput("vp", ["pm", "cache", "dir"]);
+async function getViteCacheDir(cwd: string): Promise<string[]> {
+  const cacheDir = await getCommandOutput("vp", ["pm", "cache", "dir"], { cwd });
   return cacheDir ? [cacheDir] : [];
 }

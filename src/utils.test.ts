@@ -1,8 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vite-plus/test";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { detectLockFile } from "./utils.js";
+import { getExecOutput } from "@actions/exec";
+import { detectLockFile, getCacheDirectoryCwd, getCacheDirectories } from "./utils.js";
 import { LockFileType } from "./types.js";
+
+vi.mock("@actions/core", () => ({
+  info: vi.fn(),
+  warning: vi.fn(),
+  debug: vi.fn(),
+}));
+
+vi.mock("@actions/exec", () => ({
+  getExecOutput: vi.fn(),
+}));
 
 // Mock fs module
 vi.mock("node:fs", async () => {
@@ -156,5 +167,52 @@ describe("detectLockFile", () => {
 
       expect(result).toBeUndefined();
     });
+  });
+});
+
+describe("getCacheDirectoryCwd", () => {
+  const mockWorkspace = "/test/workspace";
+
+  beforeEach(() => {
+    vi.stubEnv("GITHUB_WORKSPACE", mockWorkspace);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("should resolve cache cwd from relative lock file path", () => {
+    expect(getCacheDirectoryCwd("web/pnpm-lock.yaml")).toBe("/test/workspace/web");
+  });
+
+  it("should resolve cache cwd from absolute lock file path", () => {
+    expect(getCacheDirectoryCwd("/custom/path/pnpm-lock.yaml")).toBe("/custom/path");
+  });
+});
+
+describe("getCacheDirectories", () => {
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("should run vp pm cache dir in the provided cwd", async () => {
+    vi.mocked(getExecOutput).mockResolvedValue({
+      exitCode: 0,
+      stdout: "/tmp/pnpm-store\n",
+      stderr: "",
+    });
+
+    const result = await getCacheDirectories(LockFileType.Pnpm, "/test/workspace/web");
+
+    expect(result).toEqual(["/tmp/pnpm-store"]);
+    expect(getExecOutput).toHaveBeenCalledWith(
+      "vp",
+      ["pm", "cache", "dir"],
+      expect.objectContaining({
+        cwd: "/test/workspace/web",
+        silent: true,
+        ignoreReturnCode: true,
+      }),
+    );
   });
 });
