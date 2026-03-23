@@ -39,6 +39,14 @@ describe("resolveNodeVersionFile", () => {
       expect(readFileSync).toHaveBeenCalledWith("/custom/path/.nvmrc", "utf-8");
     });
 
+    it("should resolve relative path against an explicit base directory", () => {
+      vi.mocked(readFileSync).mockReturnValue("20.0.0\n");
+
+      resolveNodeVersionFile(".nvmrc", "/workspace/web");
+
+      expect(readFileSync).toHaveBeenCalledWith("/workspace/web/.nvmrc", "utf-8");
+    });
+
     it("should throw if file does not exist", () => {
       vi.mocked(readFileSync).mockImplementation(() => {
         throw new Error("ENOENT");

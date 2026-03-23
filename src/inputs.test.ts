@@ -27,6 +27,7 @@ describe("getInputs", () => {
       version: "latest",
       nodeVersion: undefined,
       nodeVersionFile: undefined,
+      workingDirectory: undefined,
       runInstall: [],
       cache: false,
       cacheDependencyPath: undefined,
@@ -127,5 +128,17 @@ describe("getInputs", () => {
     const inputs = getInputs();
 
     expect(inputs.cacheDependencyPath).toBe("custom-lock.yaml");
+  });
+
+  it("should parse working-directory input", () => {
+    vi.mocked(getInput).mockImplementation((name) => {
+      if (name === "working-directory") return "web";
+      return "";
+    });
+    vi.mocked(getBooleanInput).mockReturnValue(false);
+
+    const inputs = getInputs();
+
+    expect(inputs.workingDirectory).toBe("web");
   });
 });

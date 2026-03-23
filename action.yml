@@ -20,6 +20,9 @@ inputs:
   node-version-file:
     description: "Path to file containing the Node.js version spec (.nvmrc, .node-version, .tool-versions, package.json). Ignored when node-version is specified."
     required: false
+  working-directory:
+    description: "Project directory to use for relative paths, lockfile auto-detection, environment checks, and default `vp install` execution."
+    required: false
   cache:
     description: "Enable caching of project dependencies"
     required: false

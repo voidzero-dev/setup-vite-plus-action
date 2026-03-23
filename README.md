@@ -40,6 +40,19 @@ steps:
       node-version-file: ".node-version"
 ```
 
+### With Working Directory
+
+```yaml
+steps:
+  - uses: actions/checkout@v6
+  - uses: voidzero-dev/setup-vp@v1
+    with:
+      working-directory: web
+      node-version-file: ".nvmrc"
+      cache: true
+      run-install: true
+```
+
 ### With Caching and Install
 
 ```yaml
@@ -117,16 +130,19 @@ jobs:
 
 ## Inputs
 
-| Input                   | Description                                                                                               | Required | Default       |
-| ----------------------- | --------------------------------------------------------------------------------------------------------- | -------- | ------------- |
-| `version`               | Version of Vite+ to install                                                                               | No       | `latest`      |
-| `node-version`          | Node.js version to install via `vp env use`                                                               | No       | Latest LTS    |
-| `node-version-file`     | Path to file containing Node.js version (`.nvmrc`, `.node-version`, `.tool-versions`, `package.json`)     | No       |               |
-| `run-install`           | Run `vp install` after setup. Accepts boolean or YAML object with `cwd`/`args`                            | No       | `true`        |
-| `cache`                 | Enable caching of project dependencies                                                                    | No       | `false`       |
-| `cache-dependency-path` | Path to lock file for cache key generation                                                                | No       | Auto-detected |
-| `registry-url`          | Optional registry to set up for auth. Sets the registry in `.npmrc` and reads auth from `NODE_AUTH_TOKEN` | No       |               |
-| `scope`                 | Optional scope for scoped registries. Falls back to repo owner for GitHub Packages                        | No       |               |
+| Input                   | Description                                                                                                 | Required | Default        |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- | -------- | -------------- |
+| `version`               | Version of Vite+ to install                                                                                 | No       | `latest`       |
+| `node-version`          | Node.js version to install via `vp env use`                                                                 | No       | Latest LTS     |
+| `node-version-file`     | Path to file containing Node.js version (`.nvmrc`, `.node-version`, `.tool-versions`, `package.json`)       | No       |                |
+| `working-directory`     | Project directory used for relative paths, lockfile auto-detection, environment checks, and default install | No       | Workspace root |
+| `run-install`           | Run `vp install` after setup. Accepts boolean or YAML object with `cwd`/`args`                              | No       | `true`         |
+| `cache`                 | Enable caching of project dependencies                                                                      | No       | `false`        |
+| `cache-dependency-path` | Path to lock file for cache key generation                                                                  | No       | Auto-detected  |
+| `registry-url`          | Optional registry to set up for auth. Sets the registry in `.npmrc` and reads auth from `NODE_AUTH_TOKEN`   | No       |                |
+| `scope`                 | Optional scope for scoped registries. Falls back to repo owner for GitHub Packages                          | No       |                |
+
+When `working-directory` is set, relative `run-install.cwd`, `node-version-file`, and `cache-dependency-path` values are resolved from that directory.
 
 ## Outputs
 
@@ -148,6 +164,8 @@ When `cache: true` is set, the action additionally caches project dependencies b
 | `yarn.lock`         | yarn            | yarn cache      |
 
 The dependency cache key format is: `vite-plus-{OS}-{arch}-{pm}-{lockfile-hash}`
+
+When `working-directory` is set, lockfile auto-detection runs in that directory.
 
 When `cache-dependency-path` points to a lock file in a subdirectory, the action resolves the package-manager cache directory from that lock file's directory.
 

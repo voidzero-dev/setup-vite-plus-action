@@ -9,15 +9,17 @@ import { State, Outputs } from "./types.js";
 import type { Inputs } from "./types.js";
 import { resolveNodeVersionFile } from "./node-version-file.js";
 import { configAuthentication } from "./auth.js";
+import { getConfiguredProjectDir } from "./utils.js";
 
 async function runMain(inputs: Inputs): Promise<void> {
   // Mark that post action should run
   saveState(State.IsPost, "true");
+  const projectDir = getConfiguredProjectDir(inputs);
 
   // Step 1: Resolve Node.js version (needed for cache key)
   let nodeVersion = inputs.nodeVersion;
   if (!nodeVersion && inputs.nodeVersionFile) {
-    nodeVersion = resolveNodeVersionFile(inputs.nodeVersionFile);
+    nodeVersion = resolveNodeVersionFile(inputs.nodeVersionFile, projectDir);
   }
 
   // Step 2: Install Vite+
@@ -45,12 +47,12 @@ async function runMain(inputs: Inputs): Promise<void> {
   }
 
   // Print version info at the end
-  await printViteVersion();
+  await printViteVersion(projectDir);
 }
 
-async function printViteVersion(): Promise<void> {
+async function printViteVersion(cwd: string): Promise<void> {
   try {
-    const result = await getExecOutput("vp", ["--version"], { silent: true });
+    const result = await getExecOutput("vp", ["--version"], { cwd, silent: true });
     const versionOutput = result.stdout.trim();
     info(versionOutput);
 

@@ -1,15 +1,15 @@
 import { info } from "@actions/core";
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
-import { resolveWorkspacePath } from "./utils.js";
+import { getWorkspaceDir, resolvePath } from "./utils.js";
 
 /**
  * Resolve a Node.js version from a version file.
  *
  * Supports: .nvmrc, .node-version, .tool-versions, package.json
  */
-export function resolveNodeVersionFile(filePath: string): string {
-  const fullPath = resolveWorkspacePath(filePath);
+export function resolveNodeVersionFile(filePath: string, baseDir?: string): string {
+  const fullPath = resolvePath(filePath, baseDir || getWorkspaceDir());
 
   let content: string;
   try {

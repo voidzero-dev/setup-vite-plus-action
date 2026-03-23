@@ -21,6 +21,7 @@ export interface Inputs {
   readonly version: string;
   readonly nodeVersion?: string;
   readonly nodeVersionFile?: string;
+  readonly workingDirectory?: string;
   readonly runInstall: RunInstall[];
   readonly cache: boolean;
   readonly cacheDependencyPath?: string;

@@ -9,6 +9,7 @@ export function getInputs(): Inputs {
     version: getInput("version") || "latest",
     nodeVersion: getInput("node-version") || undefined,
     nodeVersionFile: getInput("node-version-file") || undefined,
+    workingDirectory: getInput("working-directory") || undefined,
     runInstall: parseRunInstall(getInput("run-install")),
     cache: getBooleanInput("cache"),
     cacheDependencyPath: getInput("cache-dependency-path") || undefined,

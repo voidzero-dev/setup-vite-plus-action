@@ -1,8 +1,9 @@
 import { info, warning, debug } from "@actions/core";
 import { getExecOutput } from "@actions/exec";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, join, basename, dirname } from "node:path";
+import { isAbsolute, join, basename } from "node:path";
+import type { Inputs } from "./types.js";
 import { LockFileType } from "./types.js";
 import type { LockFileInfo } from "./types.js";
 
@@ -15,12 +16,34 @@ export function getWorkspaceDir(): string {
   return process.env.GITHUB_WORKSPACE || process.cwd();
 }
 
-export function resolveWorkspacePath(filePath: string): string {
-  return isAbsolute(filePath) ? filePath : join(getWorkspaceDir(), filePath);
+export function resolvePath(filePath: string, baseDir: string): string {
+  return isAbsolute(filePath) ? filePath : join(baseDir, filePath);
 }
 
-export function getCacheDirectoryCwd(lockFilePath: string): string {
-  return dirname(resolveWorkspacePath(lockFilePath));
+export function getConfiguredProjectDir(inputs: Inputs): string {
+  if (!inputs.workingDirectory) {
+    return getWorkspaceDir();
+  }
+
+  const projectDir = resolvePath(inputs.workingDirectory, getWorkspaceDir());
+
+  if (!existsSync(projectDir)) {
+    throw new Error(
+      `working-directory not found: ${inputs.workingDirectory} (resolved to ${projectDir})`,
+    );
+  }
+
+  if (!statSync(projectDir).isDirectory()) {
+    throw new Error(
+      `working-directory is not a directory: ${inputs.workingDirectory} (resolved to ${projectDir})`,
+    );
+  }
+
+  return projectDir;
+}
+
+export function getInstallCwd(projectDir: string, cwd?: string): string {
+  return cwd ? resolvePath(cwd, projectDir) : projectDir;
 }
 
 // Lock file patterns in priority order
@@ -32,14 +55,16 @@ const LOCK_FILES: Array<{ filename: string; type: LockFileType }> = [
 ];
 
 /**
- * Detect lock file in the workspace
+ * Detect a lock file in the provided workspace directory.
+ * Defaults to the GitHub workspace root.
  */
-export function detectLockFile(explicitPath?: string): LockFileInfo | undefined {
-  const workspace = getWorkspaceDir();
-
+export function detectLockFile(
+  explicitPath?: string,
+  workspace = getWorkspaceDir(),
+): LockFileInfo | undefined {
   // If explicit path provided, use it
   if (explicitPath) {
-    const fullPath = resolveWorkspacePath(explicitPath);
+    const fullPath = resolvePath(explicitPath, workspace);
 
     if (existsSync(fullPath)) {
       const filename = basename(fullPath);
@@ -57,7 +82,7 @@ export function detectLockFile(explicitPath?: string): LockFileInfo | undefined 
     return undefined;
   }
 
-  // Auto-detect: search for lock files in workspace root
+  // Auto-detect: search for lock files in the provided workspace directory
   const workspaceContents = readdirSync(workspace);
 
   for (const lockInfo of LOCK_FILES) {

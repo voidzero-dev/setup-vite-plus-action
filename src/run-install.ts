@@ -1,15 +1,18 @@
 import { startGroup, endGroup, setFailed, info } from "@actions/core";
 import { exec } from "@actions/exec";
 import type { Inputs } from "./types.js";
+import { getConfiguredProjectDir, getInstallCwd } from "./utils.js";
 
 export async function runViteInstall(inputs: Inputs): Promise<void> {
+  const projectDir = getConfiguredProjectDir(inputs);
+
   for (const options of inputs.runInstall) {
     const args = ["install"];
     if (options.args) {
       args.push(...options.args);
     }
 
-    const cwd = options.cwd || process.env.GITHUB_WORKSPACE || process.cwd();
+    const cwd = getInstallCwd(projectDir, options.cwd);
     const cmdStr = `vp ${args.join(" ")}`;
 
     startGroup(`Running ${cmdStr} in ${cwd}...`);
