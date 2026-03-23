@@ -1,6 +1,6 @@
 import { info, warning, debug } from "@actions/core";
 import { getExecOutput } from "@actions/exec";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, basename } from "node:path";
 import type { Inputs } from "./types.js";
@@ -21,9 +21,25 @@ export function resolvePath(filePath: string, baseDir: string): string {
 }
 
 export function getConfiguredProjectDir(inputs: Inputs): string {
-  return inputs.workingDirectory
-    ? resolvePath(inputs.workingDirectory, getWorkspaceDir())
-    : getWorkspaceDir();
+  if (!inputs.workingDirectory) {
+    return getWorkspaceDir();
+  }
+
+  const projectDir = resolvePath(inputs.workingDirectory, getWorkspaceDir());
+
+  if (!existsSync(projectDir)) {
+    throw new Error(
+      `working-directory not found: ${inputs.workingDirectory} (resolved to ${projectDir})`,
+    );
+  }
+
+  if (!statSync(projectDir).isDirectory()) {
+    throw new Error(
+      `working-directory is not a directory: ${inputs.workingDirectory} (resolved to ${projectDir})`,
+    );
+  }
+
+  return projectDir;
 }
 
 export function getInstallCwd(inputs: Inputs, cwd?: string): string {
@@ -40,7 +56,8 @@ const LOCK_FILES: Array<{ filename: string; type: LockFileType }> = [
 ];
 
 /**
- * Detect lock file in the workspace
+ * Detect a lock file in the provided search directory.
+ * Defaults to searching in the workspace root.
  */
 export function detectLockFile(
   explicitPath?: string,

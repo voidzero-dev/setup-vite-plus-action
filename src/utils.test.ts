@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vite-plus/test";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { getExecOutput } from "@actions/exec";
 import {
@@ -28,6 +28,7 @@ vi.mock("node:fs", async () => {
     ...actual,
     existsSync: vi.fn(),
     readdirSync: vi.fn(),
+    statSync: vi.fn(),
   };
 });
 
@@ -193,6 +194,10 @@ describe("getConfiguredProjectDir", () => {
 
   beforeEach(() => {
     vi.stubEnv("GITHUB_WORKSPACE", mockWorkspace);
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(statSync).mockReturnValue({
+      isDirectory: () => true,
+    } as ReturnType<typeof statSync>);
   });
 
   afterEach(() => {
@@ -230,6 +235,44 @@ describe("getConfiguredProjectDir", () => {
       }),
     ).toBe("/test/workspace");
   });
+
+  it("should throw a clear error when working-directory does not exist", () => {
+    vi.mocked(existsSync).mockReturnValue(false);
+
+    expect(() =>
+      getConfiguredProjectDir({
+        version: "latest",
+        nodeVersion: undefined,
+        nodeVersionFile: undefined,
+        workingDirectory: "web",
+        runInstall: [],
+        cache: false,
+        cacheDependencyPath: undefined,
+        registryUrl: undefined,
+        scope: undefined,
+      }),
+    ).toThrow("working-directory not found: web (resolved to /test/workspace/web)");
+  });
+
+  it("should throw a clear error when working-directory is not a directory", () => {
+    vi.mocked(statSync).mockReturnValue({
+      isDirectory: () => false,
+    } as ReturnType<typeof statSync>);
+
+    expect(() =>
+      getConfiguredProjectDir({
+        version: "latest",
+        nodeVersion: undefined,
+        nodeVersionFile: undefined,
+        workingDirectory: "web",
+        runInstall: [],
+        cache: false,
+        cacheDependencyPath: undefined,
+        registryUrl: undefined,
+        scope: undefined,
+      }),
+    ).toThrow("working-directory is not a directory: web (resolved to /test/workspace/web)");
+  });
 });
 
 describe("resolvePath", () => {
@@ -237,6 +280,10 @@ describe("resolvePath", () => {
 
   beforeEach(() => {
     vi.stubEnv("GITHUB_WORKSPACE", mockWorkspace);
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(statSync).mockReturnValue({
+      isDirectory: () => true,
+    } as ReturnType<typeof statSync>);
   });
 
   afterEach(() => {
@@ -292,6 +339,10 @@ describe("getInstallCwd", () => {
 
   beforeEach(() => {
     vi.stubEnv("GITHUB_WORKSPACE", mockWorkspace);
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(statSync).mockReturnValue({
+      isDirectory: () => true,
+    } as ReturnType<typeof statSync>);
   });
 
   afterEach(() => {
