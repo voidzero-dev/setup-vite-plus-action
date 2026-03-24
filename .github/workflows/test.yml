@@ -231,6 +231,33 @@ jobs:
         run: |
           echo "NODE_AUTH_TOKEN is set: ${NODE_AUTH_TOKEN:+yes}"
 
+  test-alpine-container:
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [latest, alpha]
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:3.21
+    steps:
+      - name: Install Alpine dependencies
+        run: apk add --no-cache bash curl gcompat libstdc++
+
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+
+      - name: Setup Vite+ (${{ matrix.version }})
+        uses: ./
+        with:
+          version: ${{ matrix.version }}
+          run-install: false
+          cache: false
+
+      - name: Verify installation
+        run: vp --version
+
+      - name: Verify vp exec works
+        run: vp exec node -e "console.log('vp exec works in Alpine')"
+
   build:
     runs-on: ubuntu-latest
     steps:

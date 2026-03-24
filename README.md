@@ -110,6 +110,22 @@ steps:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
+### Alpine Container
+
+Alpine Linux uses musl libc instead of glibc. Install compatibility packages before using the action:
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:3.21
+    steps:
+      - run: apk add --no-cache bash curl gcompat libstdc++
+      - uses: actions/checkout@v6
+      - uses: voidzero-dev/setup-vp@v1
+```
+
 ### Matrix Testing with Multiple Node.js Versions
 
 ```yaml
