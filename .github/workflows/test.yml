@@ -238,7 +238,7 @@ jobs:
         version: [latest, alpha]
     runs-on: ubuntu-latest
     container:
-      image: alpine:3.21
+      image: alpine:3.23
     steps:
       - name: Install Alpine dependencies
         run: apk add --no-cache bash curl gcompat libstdc++
