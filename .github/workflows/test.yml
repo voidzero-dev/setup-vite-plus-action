@@ -242,7 +242,7 @@ jobs:
     steps:
       - name: Install Alpine dependencies
         shell: sh
-        run: apk add --no-cache bash curl gcompat libstdc++
+        run: apk add --no-cache curl gcompat libstdc++
 
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 

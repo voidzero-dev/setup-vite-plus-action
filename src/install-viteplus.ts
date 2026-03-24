@@ -1,5 +1,6 @@
 import { info, addPath } from "@actions/core";
 import { exec } from "@actions/exec";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Inputs } from "./types.js";
 import { DISPLAY_NAME } from "./types.js";
@@ -23,7 +24,8 @@ export async function installVitePlus(inputs: Inputs): Promise<void> {
       { env },
     );
   } else {
-    exitCode = await exec("bash", ["-c", `curl -fsSL ${INSTALL_URL_SH} | bash`], { env });
+    const shell = existsSync("/bin/bash") ? "bash" : "sh";
+    exitCode = await exec(shell, ["-c", `curl -fsSL ${INSTALL_URL_SH} | ${shell}`], { env });
   }
 
   if (exitCode !== 0) {
