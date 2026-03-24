@@ -122,6 +122,7 @@ jobs:
       image: alpine:3.21
     steps:
       - run: apk add --no-cache bash curl gcompat libstdc++
+        shell: sh
       - uses: actions/checkout@v6
       - uses: voidzero-dev/setup-vp@v1
 ```
