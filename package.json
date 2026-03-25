@@ -18,7 +18,7 @@
     "@actions/exec": "^1.1.1",
     "@actions/glob": "^0.6.0",
     "yaml": "^2.8.2",
-    "zod": "^3.25.76"
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
