@@ -27,7 +27,7 @@ steps:
   - uses: actions/checkout@v6
   - uses: voidzero-dev/setup-vp@v1
     with:
-      node-version: "24"
+      node-version: "lts"
 ```
 
 ### With Node.js Version File
@@ -60,7 +60,7 @@ steps:
   - uses: actions/checkout@v6
   - uses: voidzero-dev/setup-vp@v1
     with:
-      node-version: "24"
+      node-version: "lts"
       cache: true
       run-install: true
 ```
@@ -73,7 +73,7 @@ steps:
   - uses: voidzero-dev/setup-vp@v1
     with:
       version: "1.2.3"
-      node-version: "24"
+      node-version: "lts"
       cache: true
 ```
 
@@ -84,7 +84,7 @@ steps:
   - uses: actions/checkout@v6
   - uses: voidzero-dev/setup-vp@v1
     with:
-      node-version: "24"
+      node-version: "lts"
       cache: true
       run-install: |
         - cwd: ./packages/app
@@ -101,7 +101,7 @@ steps:
   - uses: actions/checkout@v6
   - uses: voidzero-dev/setup-vp@v1
     with:
-      node-version: "24"
+      node-version: "lts"
       registry-url: "https://npm.pkg.github.com"
       scope: "@myorg"
       run-install: false
@@ -204,7 +204,7 @@ jobs:
 
       - uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "24"
+          node-version: "lts"
           cache: true
 
       - run: vp run build
