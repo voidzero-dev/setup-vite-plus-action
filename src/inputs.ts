@@ -40,7 +40,7 @@ function parseRunInstall(input: string): RunInstall[] {
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw new Error(
-        `Invalid run-install input: ${error.errors.map((e) => e.message).join(", ")}`,
+        `Invalid run-install input: ${error.issues.map((e) => e.message).join(", ")}`,
       );
     }
     throw error;
