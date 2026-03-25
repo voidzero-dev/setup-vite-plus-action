@@ -13,7 +13,7 @@
     "prepare": "vp config"
   },
   "dependencies": {
-    "@actions/cache": "^4.1.0",
+    "@actions/cache": "^6.0.0",
     "@actions/core": "^1.11.1",
     "@actions/exec": "^1.1.1",
     "@actions/glob": "^0.6.0",
