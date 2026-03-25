@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: ["22", "24"]
+        node-version: ["lts", "22", "24"]
         version: [latest, alpha]
     runs-on: ubuntu-latest
     steps:
@@ -54,7 +54,9 @@ jobs:
         run: |
           ACTUAL=$(node --version)
           echo "Node.js version: $ACTUAL"
-          echo "$ACTUAL" | grep -q "^v${{ matrix.node-version }}\." || (echo "Expected Node.js v${{ matrix.node-version }}.x but got $ACTUAL" && exit 1)
+          if [ "${{ matrix.node-version }}" != "lts" ]; then
+            echo "$ACTUAL" | grep -q "^v${{ matrix.node-version }}\." || (echo "Expected Node.js v${{ matrix.node-version }}.x but got $ACTUAL" && exit 1)
+          fi
 
   test-cache-pnpm:
     strategy:
