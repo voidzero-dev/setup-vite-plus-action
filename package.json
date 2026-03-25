@@ -16,7 +16,7 @@
     "@actions/cache": "^4.1.0",
     "@actions/core": "^1.11.1",
     "@actions/exec": "^1.1.1",
-    "@actions/glob": "^0.5.1",
+    "@actions/glob": "^0.6.0",
     "yaml": "^2.8.2",
     "zod": "^3.25.76"
   },
