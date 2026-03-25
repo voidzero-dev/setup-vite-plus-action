@@ -11,8 +11,10 @@ export default defineConfig({
     entry: ["./src/index.ts"],
     format: ["esm"],
     outDir: "dist",
-    noExternal: [/.*/],
-    inlineOnly: false,
+    deps: {
+      alwaysBundle: [/.*/],
+      onlyBundle: false,
+    },
     clean: true,
     minify: true,
   },
