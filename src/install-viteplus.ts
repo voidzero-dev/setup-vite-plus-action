@@ -14,7 +14,7 @@ export async function installVitePlus(inputs: Inputs): Promise<void> {
   info(`Installing ${DISPLAY_NAME}@${version}...`);
 
   // TODO: Remove VITE_PLUS_VERSION once vite-plus versions before the VP_* env var
-  // rename (PR #1166) are no longer supported.
+  // rename (see https://github.com/voidzero-dev/vite-plus/pull/1166) are no longer supported.
   const env = { ...process.env, VP_VERSION: version, VITE_PLUS_VERSION: version };
   let exitCode: number;
 
