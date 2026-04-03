@@ -417,6 +417,19 @@ describe("getCacheDirectories", () => {
       }),
     );
   });
+
+  it("should run vp pm cache dir for bun", async () => {
+    vi.mocked(getExecOutput).mockResolvedValue({
+      exitCode: 0,
+      stdout: "/tmp/bun-cache\n",
+      stderr: "",
+    });
+
+    const cacheCwd = join("/test", "workspace", "web");
+    const result = await getCacheDirectories(LockFileType.Bun, cacheCwd);
+
+    expect(result).toEqual(["/tmp/bun-cache"]);
+  });
 });
 
 describe("getInstallCwd", () => {
