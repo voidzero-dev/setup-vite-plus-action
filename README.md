@@ -8,7 +8,7 @@ GitHub Action to set up [Vite+](https://viteplus.dev) (`vp`) with dependency cac
 - Optionally set up a specific Node.js version via `vp env use`
 - Cache project dependencies with auto-detection of lock files
 - Optionally run `vp install` after setup
-- Support for all major package managers (npm, pnpm, yarn)
+- Support for all major package managers (npm, pnpm, yarn, bun)
 
 ## Usage
 
@@ -176,6 +176,8 @@ When `cache: true` is set, the action additionally caches project dependencies b
 | Lock File           | Package Manager | Cache Directory |
 | ------------------- | --------------- | --------------- |
 | `pnpm-lock.yaml`    | pnpm            | pnpm store      |
+| `bun.lockb`         | bun             | bun cache       |
+| `bun.lock`          | bun             | bun cache       |
 | `package-lock.json` | npm             | npm cache       |
 | `yarn.lock`         | yarn            | yarn cache      |
 
