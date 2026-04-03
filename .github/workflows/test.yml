@@ -151,6 +151,37 @@ jobs:
           echo "Installed version: ${{ steps.setup.outputs.version }}"
           echo "Cache hit: ${{ steps.setup.outputs.cache-hit }}"
 
+  test-cache-bun:
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [latest, alpha]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Create test project with bun.lock
+        run: |
+          mkdir -p test-project
+          cd test-project
+          echo '{"name":"test-project","private":true}' > package.json
+          touch bun.lock
+
+      - name: Setup Vite+ (${{ matrix.version }}) with bun cache
+        uses: ./
+        id: setup
+        with:
+          version: ${{ matrix.version }}
+          run-install: false
+          cache: true
+          cache-dependency-path: test-project/bun.lock
+
+      - name: Verify installation
+        run: |
+          vp --version
+          echo "Installed version: ${{ steps.setup.outputs.version }}"
+          echo "Cache hit: ${{ steps.setup.outputs.cache-hit }}"
+
   test-vp-exec:
     strategy:
       fail-fast: false

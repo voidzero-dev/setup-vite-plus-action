@@ -34,6 +34,7 @@ export enum LockFileType {
   Npm = "npm",
   Pnpm = "pnpm",
   Yarn = "yarn",
+  Bun = "bun",
 }
 
 export interface LockFileInfo {

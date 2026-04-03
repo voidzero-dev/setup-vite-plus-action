@@ -49,6 +49,8 @@ export function getInstallCwd(projectDir: string, cwd?: string): string {
 // Lock file patterns in priority order
 const LOCK_FILES: Array<{ filename: string; type: LockFileType }> = [
   { filename: "pnpm-lock.yaml", type: LockFileType.Pnpm },
+  { filename: "bun.lockb", type: LockFileType.Bun },
+  { filename: "bun.lock", type: LockFileType.Bun },
   { filename: "package-lock.json", type: LockFileType.Npm },
   { filename: "npm-shrinkwrap.json", type: LockFileType.Npm },
   { filename: "yarn.lock", type: LockFileType.Yarn },
@@ -108,6 +110,9 @@ function inferLockFileType(fullPath: string, filename: string): LockFileInfo {
   if (filename.includes("yarn")) {
     return { type: LockFileType.Yarn, path: fullPath, filename };
   }
+  if (filename.includes("bun")) {
+    return { type: LockFileType.Bun, path: fullPath, filename };
+  }
   // Default to npm
   return { type: LockFileType.Npm, path: fullPath, filename };
 }
@@ -120,6 +125,7 @@ export async function getCacheDirectories(lockType: LockFileType, cwd: string): 
     case LockFileType.Npm:
     case LockFileType.Pnpm:
     case LockFileType.Yarn:
+    case LockFileType.Bun:
       return getViteCacheDir(cwd);
     default:
       return [];

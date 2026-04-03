@@ -81,6 +81,30 @@ describe("detectLockFile", () => {
       });
     });
 
+    it("should return lock file info for bun.lockb", () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+
+      const result = detectLockFile("bun.lockb");
+
+      expect(result).toEqual({
+        type: LockFileType.Bun,
+        path: join(mockWorkspace, "bun.lockb"),
+        filename: "bun.lockb",
+      });
+    });
+
+    it("should return lock file info for bun.lock", () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+
+      const result = detectLockFile("bun.lock");
+
+      expect(result).toEqual({
+        type: LockFileType.Bun,
+        path: join(mockWorkspace, "bun.lock"),
+        filename: "bun.lock",
+      });
+    });
+
     it("should return undefined if explicit file does not exist", () => {
       vi.mocked(existsSync).mockReturnValue(false);
 
@@ -173,6 +197,63 @@ describe("detectLockFile", () => {
         type: LockFileType.Yarn,
         path: join(mockWorkspace, "yarn.lock"),
         filename: "yarn.lock",
+      });
+    });
+
+    it("should detect bun.lockb", () => {
+      vi.mocked(readdirSync).mockReturnValue(["bun.lockb"] as unknown as ReturnType<
+        typeof readdirSync
+      >);
+
+      const result = detectLockFile();
+
+      expect(result).toEqual({
+        type: LockFileType.Bun,
+        path: join(mockWorkspace, "bun.lockb"),
+        filename: "bun.lockb",
+      });
+    });
+
+    it("should detect bun.lock when bun.lockb is absent", () => {
+      vi.mocked(readdirSync).mockReturnValue(["bun.lock"] as unknown as ReturnType<
+        typeof readdirSync
+      >);
+
+      const result = detectLockFile();
+
+      expect(result).toEqual({
+        type: LockFileType.Bun,
+        path: join(mockWorkspace, "bun.lock"),
+        filename: "bun.lock",
+      });
+    });
+
+    it("should prioritize bun.lockb over bun.lock", () => {
+      vi.mocked(readdirSync).mockReturnValue(["bun.lock", "bun.lockb"] as unknown as ReturnType<
+        typeof readdirSync
+      >);
+
+      const result = detectLockFile();
+
+      expect(result).toEqual({
+        type: LockFileType.Bun,
+        path: join(mockWorkspace, "bun.lockb"),
+        filename: "bun.lockb",
+      });
+    });
+
+    it("should prioritize pnpm-lock.yaml over bun lock files", () => {
+      vi.mocked(readdirSync).mockReturnValue([
+        "bun.lockb",
+        "pnpm-lock.yaml",
+      ] as unknown as ReturnType<typeof readdirSync>);
+
+      const result = detectLockFile();
+
+      expect(result).toEqual({
+        type: LockFileType.Pnpm,
+        path: join(mockWorkspace, "pnpm-lock.yaml"),
+        filename: "pnpm-lock.yaml",
       });
     });
 
