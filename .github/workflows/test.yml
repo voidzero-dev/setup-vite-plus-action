@@ -156,25 +156,26 @@ jobs:
       fail-fast: false
       matrix:
         version: [latest, alpha]
+        lockfile: [bun.lock, bun.lockb]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Create test project with bun.lock
+      - name: Create test project with ${{ matrix.lockfile }}
         run: |
           mkdir -p test-project
           cd test-project
           echo '{"name":"test-project","private":true}' > package.json
-          touch bun.lock
+          touch ${{ matrix.lockfile }}
 
-      - name: Setup Vite+ (${{ matrix.version }}) with bun cache
+      - name: Setup Vite+ (${{ matrix.version }}) with bun cache (${{ matrix.lockfile }})
         uses: ./
         id: setup
         with:
           version: ${{ matrix.version }}
           run-install: false
           cache: true
-          cache-dependency-path: test-project/bun.lock
+          cache-dependency-path: test-project/${{ matrix.lockfile }}
 
       - name: Verify installation
         run: |

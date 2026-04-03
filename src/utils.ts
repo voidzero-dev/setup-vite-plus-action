@@ -110,7 +110,7 @@ function inferLockFileType(fullPath: string, filename: string): LockFileInfo {
   if (filename.includes("yarn")) {
     return { type: LockFileType.Yarn, path: fullPath, filename };
   }
-  if (filename.includes("bun")) {
+  if (filename.startsWith("bun.")) {
     return { type: LockFileType.Bun, path: fullPath, filename };
   }
   // Default to npm
