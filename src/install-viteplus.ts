@@ -18,9 +18,13 @@ export async function installVitePlus(inputs: Inputs): Promise<void> {
 
   // TODO: Remove VITE_PLUS_VERSION once vite-plus versions before the VP_* env var
   // rename (see https://github.com/voidzero-dev/vite-plus/pull/1166) are no longer supported.
-  const env = { ...process.env, VP_VERSION: version, VITE_PLUS_VERSION: version };
+  const env = {
+    ...process.env,
+    VP_VERSION: version,
+    VITE_PLUS_VERSION: version,
+  } as { [key: string]: string };
 
-  let lastError: unknown;
+  let failureReason = "";
   for (let attempt = 1; attempt <= INSTALL_MAX_ATTEMPTS; attempt++) {
     try {
       const exitCode = await runInstallCommand(env);
@@ -28,27 +32,27 @@ export async function installVitePlus(inputs: Inputs): Promise<void> {
         ensureVitePlusBinInPath();
         return;
       }
-      lastError = new Error(`exit code ${exitCode}`);
+      failureReason = `exit code ${exitCode}`;
     } catch (error) {
-      lastError = error;
+      failureReason = error instanceof Error ? error.message : String(error);
     }
 
     if (attempt < INSTALL_MAX_ATTEMPTS) {
       const delay = INSTALL_RETRY_DELAY_MS * attempt;
       warning(
-        `Failed to install ${DISPLAY_NAME} (${describeError(lastError)}). Retrying in ${delay}ms... (attempt ${attempt + 1}/${INSTALL_MAX_ATTEMPTS})`,
+        `Failed to install ${DISPLAY_NAME} (${failureReason}). Retrying in ${delay}ms... (attempt ${attempt + 1}/${INSTALL_MAX_ATTEMPTS})`,
       );
       await sleep(delay);
     }
   }
 
   throw new Error(
-    `Failed to install ${DISPLAY_NAME} after ${INSTALL_MAX_ATTEMPTS} attempts: ${describeError(lastError)}`,
+    `Failed to install ${DISPLAY_NAME} after ${INSTALL_MAX_ATTEMPTS} attempts: ${failureReason}`,
   );
 }
 
-async function runInstallCommand(env: NodeJS.ProcessEnv): Promise<number> {
-  const options = { env: env as { [key: string]: string }, ignoreReturnCode: true };
+async function runInstallCommand(env: { [key: string]: string }): Promise<number> {
+  const options = { env, ignoreReturnCode: true };
   if (process.platform === "win32") {
     return exec(
       "pwsh",
@@ -57,11 +61,6 @@ async function runInstallCommand(env: NodeJS.ProcessEnv): Promise<number> {
     );
   }
   return exec("bash", ["-c", `curl -fsSL ${INSTALL_URL_SH} | bash`], options);
-}
-
-function describeError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
 }
 
 function ensureVitePlusBinInPath(): void {
