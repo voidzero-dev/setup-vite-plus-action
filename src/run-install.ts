@@ -1,5 +1,5 @@
 import { startGroup, endGroup, setFailed, info, error as logError } from "@actions/core";
-import { exec } from "@actions/exec";
+import { getExecOutput } from "@actions/exec";
 import type { Inputs } from "./types.js";
 import { getConfiguredProjectDir, getInstallCwd } from "./utils.js";
 
@@ -23,49 +23,30 @@ export async function runViteInstall(inputs: Inputs): Promise<void> {
     const cwd = getInstallCwd(projectDir, options.cwd);
     const cmdStr = `vp ${args.join(" ")}`;
 
-    let stderrBuffer = "";
-    let stdoutBuffer = "";
-    let groupOpen = true;
-
     startGroup(`Running ${cmdStr} in ${cwd}...`);
 
     try {
-      const exitCode = await exec("vp", args, {
+      const { exitCode, stdout, stderr } = await getExecOutput("vp", args, {
         cwd,
         ignoreReturnCode: true,
-        listeners: {
-          stdout: (data: Buffer) => {
-            stdoutBuffer += data.toString();
-          },
-          stderr: (data: Buffer) => {
-            stderrBuffer += data.toString();
-          },
-        },
       });
+      endGroup();
 
-      if (exitCode !== 0) {
-        endGroup();
-        groupOpen = false;
-        const detail = stderrBuffer.trim() || stdoutBuffer.trim();
-        if (detail) {
-          logError(tailOutput(detail, MAX_ERROR_TAIL), {
-            title: `${cmdStr} failed`,
-          });
-        }
-        setFailed(`Command "${cmdStr}" (cwd: ${cwd}) exited with code ${exitCode}`);
-      } else {
+      if (exitCode === 0) {
         info(`Successfully ran ${cmdStr}`);
+        continue;
       }
-    } catch (err) {
-      if (groupOpen) {
-        endGroup();
-        groupOpen = false;
+
+      const detail = stderr.trim() || stdout.trim();
+      if (detail) {
+        logError(tailOutput(detail, MAX_ERROR_TAIL), {
+          title: `${cmdStr} failed`,
+        });
       }
-      setFailed(`Failed to run ${cmdStr}: ${String(err)}`);
-    } finally {
-      if (groupOpen) {
-        endGroup();
-      }
+      setFailed(`Command "${cmdStr}" (cwd: ${cwd}) exited with code ${exitCode}`);
+    } catch (error) {
+      endGroup();
+      setFailed(`Failed to run ${cmdStr}: ${String(error)}`);
     }
   }
 }
