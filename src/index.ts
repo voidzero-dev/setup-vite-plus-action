@@ -8,8 +8,7 @@ import { saveCache } from "./cache-save.js";
 import { State, Outputs } from "./types.js";
 import type { Inputs } from "./types.js";
 import { resolveNodeVersionFile } from "./node-version-file.js";
-import { configAuthentication } from "./auth.js";
-import { propagateProjectNpmrcAuth } from "./npmrc-detect.js";
+import { configAuthentication, propagateProjectNpmrcAuth } from "./auth.js";
 import { getConfiguredProjectDir } from "./utils.js";
 
 async function runMain(inputs: Inputs): Promise<void> {
@@ -36,9 +35,6 @@ async function runMain(inputs: Inputs): Promise<void> {
   if (inputs.registryUrl) {
     configAuthentication(inputs.registryUrl, inputs.scope);
   } else {
-    // No explicit registry-url: respect the project's .npmrc if present.
-    // Propagate referenced auth env vars (e.g. NODE_AUTH_TOKEN) via GITHUB_ENV
-    // so they survive into package-manager subprocesses and later steps.
     propagateProjectNpmrcAuth(projectDir);
   }
 

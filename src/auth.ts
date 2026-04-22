@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { EOL } from "node:os";
-import { resolve } from "node:path";
-import { debug, exportVariable } from "@actions/core";
+import { join, resolve } from "node:path";
+import { debug, exportVariable, info } from "@actions/core";
 
 /**
  * Configure npm registry authentication by writing a .npmrc file.
@@ -64,4 +64,59 @@ function writeRegistryToFile(registryUrl: string, fileLocation: string, scope?: 
   exportVariable("NPM_CONFIG_USERCONFIG", fileLocation);
   // Export placeholder if NODE_AUTH_TOKEN is not set so npm doesn't error
   exportVariable("NODE_AUTH_TOKEN", process.env.NODE_AUTH_TOKEN || "XXXXX-XXXXX-XXXXX-XXXXX");
+}
+
+// Env vars the runner/system manages — never re-export via GITHUB_ENV
+const RESERVED_ENV_VARS = new Set([
+  "PATH",
+  "HOME",
+  "USERPROFILE",
+  "TMPDIR",
+  "RUNNER_TEMP",
+  "RUNNER_OS",
+  "RUNNER_ARCH",
+  "GITHUB_ACTIONS",
+  "GITHUB_WORKSPACE",
+  "GITHUB_REPOSITORY",
+  "GITHUB_REPOSITORY_OWNER",
+  "CI",
+]);
+
+/**
+ * When the project has an `.npmrc` referencing env vars (commonly
+ * `${NODE_AUTH_TOKEN}` for private registries), re-export the ones that are
+ * already set so they persist via `GITHUB_ENV` and remain visible to the
+ * package-manager subprocess spawned by `vp install` and to subsequent steps.
+ * Lets users rely on their existing `.npmrc` without also passing `registry-url`.
+ */
+export function propagateProjectNpmrcAuth(projectDir: string): void {
+  const npmrcPath = join(projectDir, ".npmrc");
+  let content: string;
+  try {
+    content = readFileSync(npmrcPath, "utf8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw err;
+  }
+
+  const referenced = new Set<string>();
+  for (const match of content.matchAll(/\$\{(\w+)\}/g)) {
+    referenced.add(match[1]!);
+  }
+
+  const propagatable = [...referenced].filter(
+    (name) => !RESERVED_ENV_VARS.has(name) && !!process.env[name],
+  );
+
+  if (propagatable.length === 0) {
+    debug(`Project .npmrc at ${npmrcPath}: no auth env vars to propagate`);
+    return;
+  }
+
+  info(
+    `Detected project .npmrc at ${npmrcPath}. Propagating auth env vars: ${propagatable.join(", ")}`,
+  );
+  for (const name of propagatable) {
+    exportVariable(name, process.env[name]!);
+  }
 }
