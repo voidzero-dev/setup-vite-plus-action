@@ -371,6 +371,19 @@ describe("propagateProjectNpmrcAuth", () => {
     expect(written).toContain("//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}");
   });
 
+  it("skips the write on re-run when RUNNER_TEMP/.npmrc already matches", () => {
+    mockNpmrc(
+      "@myorg:registry=https://npm.pkg.github.com",
+      `//npm.pkg.github.com/:_authToken=\${NODE_AUTH_TOKEN}`,
+    );
+    vi.stubEnv("NODE_AUTH_TOKEN", "tok");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(writeFileSync).not.toHaveBeenCalled();
+    expect(exportVariable).toHaveBeenCalledWith("NPM_CONFIG_USERCONFIG", supplementalPath);
+  });
+
   it("treats _authToken key case-insensitively when checking project .npmrc", () => {
     mockNpmrc(
       [

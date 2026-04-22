@@ -1,14 +1,41 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { EOL } from "node:os";
 import { join, resolve } from "node:path";
 import { debug, exportVariable, info } from "@actions/core";
+
+// Literal written into `.npmrc`; pnpm/npm expand it against the env at install time.
+const NODE_AUTH_TOKEN_REF = "${NODE_AUTH_TOKEN}";
+
+function getRunnerNpmrcPath(): string {
+  return resolve(process.env.RUNNER_TEMP || process.cwd(), ".npmrc");
+}
+
+function stripProtocol(url: string): string {
+  return url.replace(/^\w+:/, "");
+}
+
+function authKeyFor(registryUrl: string): string {
+  return (stripProtocol(registryUrl) + ":_authtoken").toLowerCase();
+}
+
+function buildAuthLine(registryUrl: string): string {
+  return `${stripProtocol(registryUrl)}:_authToken=${NODE_AUTH_TOKEN_REF}`;
+}
+
+function readNpmrc(path: string): string | undefined {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw err;
+  }
+}
 
 /**
  * Configure npm registry authentication by writing a .npmrc file.
  * Ported from actions/setup-node's authutil.ts.
  */
 export function configAuthentication(registryUrl: string, scope?: string): void {
-  // Validate and normalize the registry URL
   let url: URL;
   try {
     url = new URL(registryUrl);
@@ -16,11 +43,8 @@ export function configAuthentication(registryUrl: string, scope?: string): void 
     throw new Error(`Invalid registry-url: "${registryUrl}". Must be a valid URL.`);
   }
 
-  // Ensure trailing slash
   const normalizedUrl = url.href.endsWith("/") ? url.href : url.href + "/";
-  const npmrc = resolve(process.env.RUNNER_TEMP || process.cwd(), ".npmrc");
-
-  writeRegistryToFile(normalizedUrl, npmrc, scope);
+  writeRegistryToFile(normalizedUrl, getRunnerNpmrcPath(), scope);
 }
 
 function writeRegistryToFile(registryUrl: string, fileLocation: string, scope?: string): void {
@@ -39,25 +63,20 @@ function writeRegistryToFile(registryUrl: string, fileLocation: string, scope?: 
 
   debug(`Setting auth in ${fileLocation}`);
 
-  // Compute the auth line prefix for filtering existing entries
-  const authPrefix = registryUrl.replace(/^\w+:/, "").toLowerCase();
+  const authPrefix = stripProtocol(registryUrl).toLowerCase();
 
   const lines: string[] = [];
-  if (existsSync(fileLocation)) {
-    const curContents = readFileSync(fileLocation, "utf8");
-    for (const line of curContents.split(/\r?\n/)) {
+  const existing = readNpmrc(fileLocation);
+  if (existing !== undefined) {
+    for (const line of existing.split(/\r?\n/)) {
       const lower = line.toLowerCase();
-      // Remove existing registry and auth token lines for this scope/registry
       if (lower.startsWith(`${scopePrefix}registry`)) continue;
       if (lower.startsWith(authPrefix) && lower.includes("_authtoken")) continue;
       lines.push(line);
     }
   }
 
-  // Auth token line: remove protocol prefix from registry URL
-  const authString = registryUrl.replace(/^\w+:/, "") + ":_authToken=${NODE_AUTH_TOKEN}";
-  const registryString = `${scopePrefix}registry=${registryUrl}`;
-  lines.push(authString, registryString);
+  lines.push(buildAuthLine(registryUrl), `${scopePrefix}registry=${registryUrl}`);
 
   writeFileSync(fileLocation, lines.join(EOL));
 
@@ -82,18 +101,13 @@ const RESERVED_ENV_VARS = new Set([
   "CI",
 ]);
 
-interface ParsedNpmrc {
-  registries: Set<string>;
-  authKeys: Set<string>;
+function analyzeProjectNpmrc(content: string): {
+  registriesNeedingAuth: string[];
   envVarRefs: Set<string>;
-}
-
-function parseNpmrc(content: string): ParsedNpmrc {
-  const result: ParsedNpmrc = {
-    registries: new Set(),
-    authKeys: new Set(),
-    envVarRefs: new Set(),
-  };
+} {
+  const registries = new Set<string>();
+  const authKeys = new Set<string>();
+  const envVarRefs = new Set<string>();
 
   for (const rawLine of content.split(/\r?\n/)) {
     const line = rawLine.trim();
@@ -101,51 +115,49 @@ function parseNpmrc(content: string): ParsedNpmrc {
 
     const eq = line.indexOf("=");
     if (eq < 0) continue;
-    const key = line.slice(0, eq).trim();
-    const lowerKey = key.toLowerCase();
+    const lowerKey = line.slice(0, eq).trim().toLowerCase();
     const value = line.slice(eq + 1).trim();
 
     if (lowerKey === "registry" || lowerKey.endsWith(":registry")) {
-      result.registries.add(value.endsWith("/") ? value : value + "/");
+      registries.add(value.endsWith("/") ? value : value + "/");
     }
     if (lowerKey.startsWith("//") && lowerKey.endsWith(":_authtoken")) {
-      result.authKeys.add(lowerKey);
+      authKeys.add(lowerKey);
     }
     for (const m of value.matchAll(/\$\{(\w+)\}/g)) {
-      result.envVarRefs.add(m[1]!);
+      envVarRefs.add(m[1]!);
     }
   }
 
-  return result;
-}
-
-function authKeyFor(registryUrl: string): string {
-  return `${registryUrl.replace(/^\w+:/, "")}:_authtoken`.toLowerCase();
+  return {
+    registriesNeedingAuth: [...registries].filter((url) => !authKeys.has(authKeyFor(url))),
+    envVarRefs,
+  };
 }
 
 function writeSupplementalAuth(registries: string[]): void {
-  const supplementalPath = resolve(process.env.RUNNER_TEMP || process.cwd(), ".npmrc");
-  const authKeysToWrite = new Set(registries.map(authKeyFor));
+  const npmrcPath = getRunnerNpmrcPath();
+  const authKeysToReplace = new Set(registries.map(authKeyFor));
 
-  const keepLines: string[] = [];
-  if (existsSync(supplementalPath)) {
-    for (const line of readFileSync(supplementalPath, "utf8").split(/\r?\n/)) {
-      const eq = line.indexOf("=");
-      if (eq > 0) {
-        const lineKey = line.slice(0, eq).trim().toLowerCase();
-        if (authKeysToWrite.has(lineKey)) continue;
-      }
-      keepLines.push(line);
-    }
+  const existing = readNpmrc(npmrcPath);
+  const existingLines = existing === undefined ? [] : existing.split(/\r?\n/);
+
+  const keepLines = existingLines.filter((line) => {
+    const eq = line.indexOf("=");
+    if (eq <= 0) return true;
+    return !authKeysToReplace.has(line.slice(0, eq).trim().toLowerCase());
+  });
+
+  const nextContent = [...keepLines, ...registries.map(buildAuthLine)].join(EOL);
+  exportVariable("NPM_CONFIG_USERCONFIG", npmrcPath);
+
+  if (existing === nextContent) {
+    debug(`Supplemental .npmrc at ${npmrcPath} already current`);
+    return;
   }
 
-  for (const registry of registries) {
-    keepLines.push(`${registry.replace(/^\w+:/, "")}:_authToken=\${NODE_AUTH_TOKEN}`);
-  }
-
-  writeFileSync(supplementalPath, keepLines.join(EOL));
-  exportVariable("NPM_CONFIG_USERCONFIG", supplementalPath);
-  info(`Wrote _authToken entries to ${supplementalPath} for registries: ${registries.join(", ")}`);
+  writeFileSync(npmrcPath, nextContent);
+  info(`Wrote _authToken entries to ${npmrcPath} for registries: ${registries.join(", ")}`);
 }
 
 /**
@@ -162,24 +174,17 @@ function writeSupplementalAuth(registries: string[]): void {
  */
 export function propagateProjectNpmrcAuth(projectDir: string): void {
   const npmrcPath = join(projectDir, ".npmrc");
-  let content: string;
-  try {
-    content = readFileSync(npmrcPath, "utf8");
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw err;
+  const content = readNpmrc(npmrcPath);
+  if (content === undefined) return;
+
+  const { registriesNeedingAuth, envVarRefs } = analyzeProjectNpmrc(content);
+
+  if (process.env.NODE_AUTH_TOKEN && registriesNeedingAuth.length > 0) {
+    writeSupplementalAuth(registriesNeedingAuth);
+    envVarRefs.add("NODE_AUTH_TOKEN");
   }
 
-  const parsed = parseNpmrc(content);
-
-  const needsAuth = [...parsed.registries].filter((url) => !parsed.authKeys.has(authKeyFor(url)));
-
-  if (process.env.NODE_AUTH_TOKEN && needsAuth.length > 0) {
-    writeSupplementalAuth(needsAuth);
-    parsed.envVarRefs.add("NODE_AUTH_TOKEN");
-  }
-
-  const propagatable = [...parsed.envVarRefs].filter(
+  const propagatable = [...envVarRefs].filter(
     (name) => !RESERVED_ENV_VARS.has(name) && !!process.env[name],
   );
 
