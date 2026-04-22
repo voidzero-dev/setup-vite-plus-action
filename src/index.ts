@@ -8,7 +8,7 @@ import { saveCache } from "./cache-save.js";
 import { State, Outputs } from "./types.js";
 import type { Inputs } from "./types.js";
 import { resolveNodeVersionFile } from "./node-version-file.js";
-import { configAuthentication } from "./auth.js";
+import { configAuthentication, propagateProjectNpmrcAuth } from "./auth.js";
 import { getConfiguredProjectDir } from "./utils.js";
 
 async function runMain(inputs: Inputs): Promise<void> {
@@ -31,9 +31,11 @@ async function runMain(inputs: Inputs): Promise<void> {
     await exec("vp", ["env", "use", nodeVersion]);
   }
 
-  // Step 4: Configure registry authentication if specified
+  // Step 4: Configure registry authentication
   if (inputs.registryUrl) {
     configAuthentication(inputs.registryUrl, inputs.scope);
+  } else {
+    propagateProjectNpmrcAuth(projectDir);
   }
 
   // Step 5: Restore cache if enabled

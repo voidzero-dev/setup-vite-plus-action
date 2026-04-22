@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vite-plus/test";
-import { join } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { configAuthentication } from "./auth.js";
-import { exportVariable } from "@actions/core";
+import { join } from "node:path";
+import { configAuthentication, propagateProjectNpmrcAuth } from "./auth.js";
+import { exportVariable, info } from "@actions/core";
 
 vi.mock("@actions/core", () => ({
   debug: vi.fn(),
+  info: vi.fn(),
   exportVariable: vi.fn(),
 }));
 
@@ -175,5 +176,264 @@ describe("configAuthentication", () => {
     configAuthentication("https://registry.npmjs.org/");
 
     expect(exportVariable).toHaveBeenCalledWith("NODE_AUTH_TOKEN", "my-real-token");
+  });
+});
+
+describe("propagateProjectNpmrcAuth", () => {
+  const runnerTemp = "/tmp/runner";
+  const projectDir = "/workspace/project";
+  const npmrcPath = join(projectDir, ".npmrc");
+  const supplementalPath = join(runnerTemp, ".npmrc");
+
+  function mockNpmrc(content: string, supplemental?: string): void {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (p === npmrcPath) return content;
+      if (p === supplementalPath && supplemental !== undefined) return supplemental;
+      const err = Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+      throw err;
+    });
+    vi.mocked(existsSync).mockImplementation(
+      (p) => p === supplementalPath && supplemental !== undefined,
+    );
+  }
+
+  function mockNoNpmrc(): void {
+    vi.mocked(readFileSync).mockImplementation(() => {
+      const err = Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+      throw err;
+    });
+    vi.mocked(existsSync).mockReturnValue(false);
+  }
+
+  beforeEach(() => {
+    vi.stubEnv("RUNNER_TEMP", runnerTemp);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetAllMocks();
+  });
+
+  it("does nothing when there is no project .npmrc", () => {
+    mockNoNpmrc();
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(exportVariable).not.toHaveBeenCalled();
+    expect(writeFileSync).not.toHaveBeenCalled();
+  });
+
+  it("exports referenced env vars that are set in the environment", () => {
+    mockNpmrc("//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}");
+    vi.stubEnv("NODE_AUTH_TOKEN", "my-real-token");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(exportVariable).toHaveBeenCalledWith("NODE_AUTH_TOKEN", "my-real-token");
+    expect(info).toHaveBeenCalledWith(expect.stringContaining(".npmrc"));
+  });
+
+  it("skips env vars that are not set", () => {
+    mockNpmrc("//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}");
+    vi.stubEnv("NODE_AUTH_TOKEN", "");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(exportVariable).not.toHaveBeenCalled();
+  });
+
+  it("does not re-export PATH or HOME even if referenced", () => {
+    mockNpmrc("cache=${HOME}/.npm-cache");
+    vi.stubEnv("HOME", "/home/runner");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(exportVariable).not.toHaveBeenCalledWith("HOME", expect.anything());
+  });
+
+  it("blocks runner-managed GITHUB_* and RUNNER_* vars by default", () => {
+    mockNpmrc(
+      [
+        "tag=${GITHUB_REF}",
+        "agent=${RUNNER_NAME}",
+        "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}",
+      ].join("\n"),
+    );
+    vi.stubEnv("GITHUB_REF", "refs/heads/main");
+    vi.stubEnv("RUNNER_NAME", "runner-1");
+    vi.stubEnv("NODE_AUTH_TOKEN", "tok");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(exportVariable).not.toHaveBeenCalledWith("GITHUB_REF", expect.anything());
+    expect(exportVariable).not.toHaveBeenCalledWith("RUNNER_NAME", expect.anything());
+    expect(exportVariable).toHaveBeenCalledWith("NODE_AUTH_TOKEN", "tok");
+  });
+
+  it("allows GITHUB_TOKEN through as an auth token", () => {
+    mockNpmrc("//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}");
+    vi.stubEnv("GITHUB_TOKEN", "gh-token");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(exportVariable).toHaveBeenCalledWith("GITHUB_TOKEN", "gh-token");
+  });
+
+  it("exports all referenced auth-like env vars, deduping repeats", () => {
+    mockNpmrc(
+      [
+        "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}",
+        "//registry.example.com/:_authToken=${NPM_TOKEN}",
+        "//other.example.com/:_authToken=${GITHUB_TOKEN}",
+      ].join("\n"),
+    );
+    vi.stubEnv("GITHUB_TOKEN", "gh-token");
+    vi.stubEnv("NPM_TOKEN", "npm-token");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(exportVariable).toHaveBeenCalledWith("GITHUB_TOKEN", "gh-token");
+    expect(exportVariable).toHaveBeenCalledWith("NPM_TOKEN", "npm-token");
+    const ghCalls = vi.mocked(exportVariable).mock.calls.filter((c) => c[0] === "GITHUB_TOKEN");
+    expect(ghCalls).toHaveLength(1);
+  });
+
+  it("rethrows non-ENOENT read errors", () => {
+    vi.mocked(readFileSync).mockImplementation(() => {
+      throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+    });
+
+    expect(() => propagateProjectNpmrcAuth(projectDir)).toThrow("EACCES");
+  });
+
+  it("auto-writes _authToken for a scoped registry when NODE_AUTH_TOKEN is set", () => {
+    mockNpmrc("@myorg:registry=https://npm.pkg.github.com");
+    vi.stubEnv("NODE_AUTH_TOKEN", "ghp_xxx");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(writeFileSync).toHaveBeenCalledWith(
+      supplementalPath,
+      expect.stringContaining("//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}"),
+    );
+    expect(exportVariable).toHaveBeenCalledWith("NPM_CONFIG_USERCONFIG", supplementalPath);
+    expect(exportVariable).toHaveBeenCalledWith("NODE_AUTH_TOKEN", "ghp_xxx");
+  });
+
+  it("auto-writes _authToken for the default registry", () => {
+    mockNpmrc("registry=https://registry.example.com");
+    vi.stubEnv("NODE_AUTH_TOKEN", "tok");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(writeFileSync).toHaveBeenCalledWith(
+      supplementalPath,
+      expect.stringContaining("//registry.example.com/:_authToken=${NODE_AUTH_TOKEN}"),
+    );
+  });
+
+  it("does not overwrite existing _authToken entries in the project .npmrc", () => {
+    mockNpmrc(
+      [
+        "@myorg:registry=https://npm.pkg.github.com",
+        "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}",
+      ].join("\n"),
+    );
+    vi.stubEnv("NODE_AUTH_TOKEN", "ghp_xxx");
+    vi.stubEnv("GITHUB_TOKEN", "gh-token");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(writeFileSync).not.toHaveBeenCalled();
+    expect(exportVariable).toHaveBeenCalledWith("GITHUB_TOKEN", "gh-token");
+  });
+
+  it("does not write supplemental .npmrc when NODE_AUTH_TOKEN is not set", () => {
+    mockNpmrc("@myorg:registry=https://npm.pkg.github.com");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(writeFileSync).not.toHaveBeenCalled();
+    expect(exportVariable).not.toHaveBeenCalledWith("NPM_CONFIG_USERCONFIG", expect.anything());
+  });
+
+  it("writes _authToken for multiple missing registries", () => {
+    mockNpmrc(
+      ["@a:registry=https://one.example.com", "@b:registry=https://two.example.com"].join("\n"),
+    );
+    vi.stubEnv("NODE_AUTH_TOKEN", "tok");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    const written = vi.mocked(writeFileSync).mock.calls[0]![1] as string;
+    expect(written).toContain("//one.example.com/:_authToken=${NODE_AUTH_TOKEN}");
+    expect(written).toContain("//two.example.com/:_authToken=${NODE_AUTH_TOKEN}");
+  });
+
+  it("preserves unrelated lines already in RUNNER_TEMP/.npmrc", () => {
+    mockNpmrc(
+      "@myorg:registry=https://npm.pkg.github.com",
+      "always-auth=true\n//other.example.com/:_authToken=preserved",
+    );
+    vi.stubEnv("NODE_AUTH_TOKEN", "tok");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    const written = vi.mocked(writeFileSync).mock.calls[0]![1] as string;
+    expect(written).toContain("always-auth=true");
+    expect(written).toContain("//other.example.com/:_authToken=preserved");
+    expect(written).toContain("//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}");
+  });
+
+  it("replaces stale _authToken for the same registry in RUNNER_TEMP/.npmrc", () => {
+    mockNpmrc(
+      "@myorg:registry=https://npm.pkg.github.com",
+      "//npm.pkg.github.com/:_authToken=old-value",
+    );
+    vi.stubEnv("NODE_AUTH_TOKEN", "tok");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    const written = vi.mocked(writeFileSync).mock.calls[0]![1] as string;
+    expect(written).not.toContain("old-value");
+    expect(written).toContain("//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}");
+  });
+
+  it("skips the write on re-run when RUNNER_TEMP/.npmrc already matches", () => {
+    mockNpmrc(
+      "@myorg:registry=https://npm.pkg.github.com",
+      `//npm.pkg.github.com/:_authToken=\${NODE_AUTH_TOKEN}`,
+    );
+    vi.stubEnv("NODE_AUTH_TOKEN", "tok");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(writeFileSync).not.toHaveBeenCalled();
+    expect(exportVariable).toHaveBeenCalledWith("NPM_CONFIG_USERCONFIG", supplementalPath);
+  });
+
+  it("skips registries whose value contains ${VAR} (cannot synthesize a valid auth key)", () => {
+    mockNpmrc("@myorg:registry=${CUSTOM_REGISTRY}");
+    vi.stubEnv("NODE_AUTH_TOKEN", "tok");
+    vi.stubEnv("CUSTOM_REGISTRY", "https://npm.example.com");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(writeFileSync).not.toHaveBeenCalled();
+    expect(exportVariable).toHaveBeenCalledWith("CUSTOM_REGISTRY", "https://npm.example.com");
+  });
+
+  it("treats _authToken key case-insensitively when checking project .npmrc", () => {
+    mockNpmrc(
+      [
+        "@myorg:registry=https://npm.pkg.github.com",
+        "//npm.pkg.github.com/:_AUTHTOKEN=${NODE_AUTH_TOKEN}",
+      ].join("\n"),
+    );
+    vi.stubEnv("NODE_AUTH_TOKEN", "tok");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(writeFileSync).not.toHaveBeenCalled();
   });
 });
