@@ -94,7 +94,28 @@ steps:
 
 ### With Private Registry (GitHub Packages)
 
-When using `registry-url`, set `run-install: false` and run install manually with the auth token, otherwise the default auto-install will fail for private packages.
+If your repo already has a `.npmrc` that declares the registry, you can just pass
+`NODE_AUTH_TOKEN` via `env` and let the default `vp install` run — no
+`registry-url` needed. The action detects the project `.npmrc`, propagates any
+referenced auth env vars (`${NODE_AUTH_TOKEN}`, `${GITHUB_TOKEN}`, etc.) to
+subsequent steps, and `vp install` picks up the existing registry config.
+
+```yaml
+# .npmrc in the repo:
+#   @myorg:registry=https://npm.pkg.github.com
+#   //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+
+steps:
+  - uses: actions/checkout@v6
+  - uses: voidzero-dev/setup-vp@v1
+    with:
+      node-version: "lts"
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+```
+
+If the repo does **not** have an `.npmrc`, use `registry-url` to have the action
+generate one at `$RUNNER_TEMP/.npmrc`:
 
 ```yaml
 steps:
