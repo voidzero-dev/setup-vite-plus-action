@@ -251,6 +251,34 @@ describe("propagateProjectNpmrcAuth", () => {
     expect(exportVariable).not.toHaveBeenCalledWith("HOME", expect.anything());
   });
 
+  it("blocks runner-managed GITHUB_* and RUNNER_* vars by default", () => {
+    mockNpmrc(
+      [
+        "tag=${GITHUB_REF}",
+        "agent=${RUNNER_NAME}",
+        "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}",
+      ].join("\n"),
+    );
+    vi.stubEnv("GITHUB_REF", "refs/heads/main");
+    vi.stubEnv("RUNNER_NAME", "runner-1");
+    vi.stubEnv("NODE_AUTH_TOKEN", "tok");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(exportVariable).not.toHaveBeenCalledWith("GITHUB_REF", expect.anything());
+    expect(exportVariable).not.toHaveBeenCalledWith("RUNNER_NAME", expect.anything());
+    expect(exportVariable).toHaveBeenCalledWith("NODE_AUTH_TOKEN", "tok");
+  });
+
+  it("allows GITHUB_TOKEN through as an auth token", () => {
+    mockNpmrc("//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}");
+    vi.stubEnv("GITHUB_TOKEN", "gh-token");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(exportVariable).toHaveBeenCalledWith("GITHUB_TOKEN", "gh-token");
+  });
+
   it("exports all referenced auth-like env vars, deduping repeats", () => {
     mockNpmrc(
       [
@@ -382,6 +410,17 @@ describe("propagateProjectNpmrcAuth", () => {
 
     expect(writeFileSync).not.toHaveBeenCalled();
     expect(exportVariable).toHaveBeenCalledWith("NPM_CONFIG_USERCONFIG", supplementalPath);
+  });
+
+  it("skips registries whose value contains ${VAR} (cannot synthesize a valid auth key)", () => {
+    mockNpmrc("@myorg:registry=${CUSTOM_REGISTRY}");
+    vi.stubEnv("NODE_AUTH_TOKEN", "tok");
+    vi.stubEnv("CUSTOM_REGISTRY", "https://npm.example.com");
+
+    propagateProjectNpmrcAuth(projectDir);
+
+    expect(writeFileSync).not.toHaveBeenCalled();
+    expect(exportVariable).toHaveBeenCalledWith("CUSTOM_REGISTRY", "https://npm.example.com");
   });
 
   it("treats _authToken key case-insensitively when checking project .npmrc", () => {

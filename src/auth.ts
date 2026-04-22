@@ -85,21 +85,18 @@ function writeRegistryToFile(registryUrl: string, fileLocation: string, scope?: 
   exportVariable("NODE_AUTH_TOKEN", process.env.NODE_AUTH_TOKEN || "XXXXX-XXXXX-XXXXX-XXXXX");
 }
 
-// Env vars the runner/system manages — never re-export via GITHUB_ENV
-const RESERVED_ENV_VARS = new Set([
-  "PATH",
-  "HOME",
-  "USERPROFILE",
-  "TMPDIR",
-  "RUNNER_TEMP",
-  "RUNNER_OS",
-  "RUNNER_ARCH",
-  "GITHUB_ACTIONS",
-  "GITHUB_WORKSPACE",
-  "GITHUB_REPOSITORY",
-  "GITHUB_REPOSITORY_OWNER",
-  "CI",
-]);
+// GitHub-Actions-managed namespaces: re-exporting any of these via GITHUB_ENV
+// could clobber runner-provided values for subsequent steps. Block the whole
+// prefix by default; allow only vars that are legitimately passed as auth tokens.
+const RUNTIME_ENV_ALLOWLIST = new Set(["GITHUB_TOKEN"]);
+const ALWAYS_RESERVED = new Set(["PATH", "HOME", "USERPROFILE", "TMPDIR", "CI"]);
+
+function isReservedEnvVar(name: string): boolean {
+  if (ALWAYS_RESERVED.has(name)) return true;
+  if (name.startsWith("RUNNER_")) return true;
+  if (name.startsWith("GITHUB_")) return !RUNTIME_ENV_ALLOWLIST.has(name);
+  return false;
+}
 
 function analyzeProjectNpmrc(content: string): {
   registriesNeedingAuth: string[];
@@ -119,7 +116,12 @@ function analyzeProjectNpmrc(content: string): {
     const value = line.slice(eq + 1).trim();
 
     if (lowerKey === "registry" || lowerKey.endsWith(":registry")) {
-      registries.add(value.endsWith("/") ? value : value + "/");
+      // Skip values that rely on env-var expansion — the key for the matching
+      // `_authToken` line must be a literal URL, and `${VAR}` isn't expanded
+      // inside `.npmrc` keys by npm/pnpm.
+      if (!value.includes("${")) {
+        registries.add(value.endsWith("/") ? value : value + "/");
+      }
     }
     if (lowerKey.startsWith("//") && lowerKey.endsWith(":_authtoken")) {
       authKeys.add(lowerKey);
@@ -185,7 +187,7 @@ export function propagateProjectNpmrcAuth(projectDir: string): void {
   }
 
   const propagatable = [...envVarRefs].filter(
-    (name) => !RESERVED_ENV_VARS.has(name) && !!process.env[name],
+    (name) => !isReservedEnvVar(name) && !!process.env[name],
   );
 
   if (propagatable.length === 0) {

@@ -117,7 +117,9 @@ steps:
 If you already have the `_authToken` line in your repo `.npmrc` (e.g. for local
 dev symmetry), that's respected as-is and the action won't overwrite it.
 
-Alternatively, pass `registry-url` explicitly to skip repo-level `.npmrc` entirely:
+Alternatively, pass `registry-url` explicitly to bypass the action's repo-level
+`.npmrc` detection and auth propagation logic (the package manager may still
+read the repo `.npmrc` per its own config resolution):
 
 ```yaml
 steps:
