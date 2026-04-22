@@ -82,12 +82,83 @@ const RESERVED_ENV_VARS = new Set([
   "CI",
 ]);
 
+interface ParsedNpmrc {
+  registries: Set<string>;
+  authKeys: Set<string>;
+  envVarRefs: Set<string>;
+}
+
+function parseNpmrc(content: string): ParsedNpmrc {
+  const result: ParsedNpmrc = {
+    registries: new Set(),
+    authKeys: new Set(),
+    envVarRefs: new Set(),
+  };
+
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith(";") || line.startsWith("#")) continue;
+
+    const eq = line.indexOf("=");
+    if (eq < 0) continue;
+    const key = line.slice(0, eq).trim();
+    const lowerKey = key.toLowerCase();
+    const value = line.slice(eq + 1).trim();
+
+    if (lowerKey === "registry" || lowerKey.endsWith(":registry")) {
+      result.registries.add(value.endsWith("/") ? value : value + "/");
+    }
+    if (lowerKey.startsWith("//") && lowerKey.endsWith(":_authtoken")) {
+      result.authKeys.add(lowerKey);
+    }
+    for (const m of value.matchAll(/\$\{(\w+)\}/g)) {
+      result.envVarRefs.add(m[1]!);
+    }
+  }
+
+  return result;
+}
+
+function authKeyFor(registryUrl: string): string {
+  return `${registryUrl.replace(/^\w+:/, "")}:_authtoken`.toLowerCase();
+}
+
+function writeSupplementalAuth(registries: string[]): void {
+  const supplementalPath = resolve(process.env.RUNNER_TEMP || process.cwd(), ".npmrc");
+  const authKeysToWrite = new Set(registries.map(authKeyFor));
+
+  const keepLines: string[] = [];
+  if (existsSync(supplementalPath)) {
+    for (const line of readFileSync(supplementalPath, "utf8").split(/\r?\n/)) {
+      const eq = line.indexOf("=");
+      if (eq > 0) {
+        const lineKey = line.slice(0, eq).trim().toLowerCase();
+        if (authKeysToWrite.has(lineKey)) continue;
+      }
+      keepLines.push(line);
+    }
+  }
+
+  for (const registry of registries) {
+    keepLines.push(`${registry.replace(/^\w+:/, "")}:_authToken=\${NODE_AUTH_TOKEN}`);
+  }
+
+  writeFileSync(supplementalPath, keepLines.join(EOL));
+  exportVariable("NPM_CONFIG_USERCONFIG", supplementalPath);
+  info(`Wrote _authToken entries to ${supplementalPath} for registries: ${registries.join(", ")}`);
+}
+
 /**
- * When the project has an `.npmrc` referencing env vars (commonly
- * `${NODE_AUTH_TOKEN}` for private registries), re-export the ones that are
- * already set so they persist via `GITHUB_ENV` and remain visible to the
- * package-manager subprocess spawned by `vp install` and to subsequent steps.
- * Lets users rely on their existing `.npmrc` without also passing `registry-url`.
+ * Handle auth for the project's existing `.npmrc` without requiring
+ * `registry-url` in the workflow.
+ *
+ * - If `.npmrc` declares a custom registry but no matching `_authToken` entry
+ *   and `NODE_AUTH_TOKEN` is set, write a supplemental `_authToken=${NODE_AUTH_TOKEN}`
+ *   line to `$RUNNER_TEMP/.npmrc` and point `NPM_CONFIG_USERCONFIG` at it, so the
+ *   repo `.npmrc` can stay to just `@scope:registry=<url>`.
+ * - For any `${VAR}` references already in the project `.npmrc`, re-export those
+ *   env vars via `GITHUB_ENV` so they remain visible to package-manager
+ *   subprocesses and subsequent steps.
  */
 export function propagateProjectNpmrcAuth(projectDir: string): void {
   const npmrcPath = join(projectDir, ".npmrc");
@@ -99,12 +170,16 @@ export function propagateProjectNpmrcAuth(projectDir: string): void {
     throw err;
   }
 
-  const referenced = new Set<string>();
-  for (const match of content.matchAll(/\$\{(\w+)\}/g)) {
-    referenced.add(match[1]!);
+  const parsed = parseNpmrc(content);
+
+  const needsAuth = [...parsed.registries].filter((url) => !parsed.authKeys.has(authKeyFor(url)));
+
+  if (process.env.NODE_AUTH_TOKEN && needsAuth.length > 0) {
+    writeSupplementalAuth(needsAuth);
+    parsed.envVarRefs.add("NODE_AUTH_TOKEN");
   }
 
-  const propagatable = [...referenced].filter(
+  const propagatable = [...parsed.envVarRefs].filter(
     (name) => !RESERVED_ENV_VARS.has(name) && !!process.env[name],
   );
 

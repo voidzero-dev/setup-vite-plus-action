@@ -94,16 +94,16 @@ steps:
 
 ### With Private Registry (GitHub Packages)
 
-If your repo already has a `.npmrc` that declares the registry, you can just pass
-`NODE_AUTH_TOKEN` via `env` and let the default `vp install` run — no
-`registry-url` needed. The action detects the project `.npmrc`, propagates any
-referenced auth env vars (`${NODE_AUTH_TOKEN}`, `${GITHUB_TOKEN}`, etc.) to
-subsequent steps, and `vp install` picks up the existing registry config.
+If your repo has a `.npmrc` that declares the registry, pass `NODE_AUTH_TOKEN`
+via `env` and let the default `vp install` run — no `registry-url` needed.
+When `NODE_AUTH_TOKEN` is set, the action auto-generates a matching
+`_authToken` entry at `$RUNNER_TEMP/.npmrc` for each registry declared in your
+repo `.npmrc` that doesn't already have one, so your repo `.npmrc` can stay
+minimal:
 
 ```yaml
-# .npmrc in the repo:
+# .npmrc in the repo (auth line not required — action adds it):
 #   @myorg:registry=https://npm.pkg.github.com
-#   //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
 
 steps:
   - uses: actions/checkout@v6
@@ -114,8 +114,10 @@ steps:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
-If the repo does **not** have an `.npmrc`, use `registry-url` to have the action
-generate one at `$RUNNER_TEMP/.npmrc`:
+If you already have the `_authToken` line in your repo `.npmrc` (e.g. for local
+dev symmetry), that's respected as-is and the action won't overwrite it.
+
+Alternatively, pass `registry-url` explicitly to skip repo-level `.npmrc` entirely:
 
 ```yaml
 steps:
