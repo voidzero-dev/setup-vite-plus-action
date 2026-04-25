@@ -1,4 +1,4 @@
-import { startGroup, endGroup, setFailed, info, error as logError } from "@actions/core";
+import { startGroup, endGroup, info, error as logError } from "@actions/core";
 import { getExecOutput } from "@actions/exec";
 import type { Inputs } from "./types.js";
 import { getConfiguredProjectDir, getInstallCwd } from "./utils.js";
@@ -25,28 +25,30 @@ export async function runViteInstall(inputs: Inputs): Promise<void> {
 
     startGroup(`Running ${cmdStr} in ${cwd}...`);
 
+    let result: Awaited<ReturnType<typeof getExecOutput>>;
     try {
-      const { exitCode, stdout, stderr } = await getExecOutput("vp", args, {
+      result = await getExecOutput("vp", args, {
         cwd,
         ignoreReturnCode: true,
       });
-      endGroup();
-
-      if (exitCode === 0) {
-        info(`Successfully ran ${cmdStr}`);
-        continue;
-      }
-
-      const detail = stderr.trim() || stdout.trim();
-      if (detail) {
-        logError(tailOutput(detail, MAX_ERROR_TAIL), {
-          title: `${cmdStr} failed`,
-        });
-      }
-      setFailed(`Command "${cmdStr}" (cwd: ${cwd}) exited with code ${exitCode}`);
     } catch (error) {
       endGroup();
-      setFailed(`Failed to run ${cmdStr}: ${String(error)}`);
+      throw new Error(`Failed to run ${cmdStr}: ${String(error)}`);
     }
+
+    endGroup();
+
+    if (result.exitCode === 0) {
+      info(`Successfully ran ${cmdStr}`);
+      continue;
+    }
+
+    const detail = result.stderr.trim() || result.stdout.trim();
+    if (detail) {
+      logError(tailOutput(detail, MAX_ERROR_TAIL), {
+        title: `${cmdStr} failed`,
+      });
+    }
+    throw new Error(`Command "${cmdStr}" (cwd: ${cwd}) exited with code ${result.exitCode}`);
   }
 }
