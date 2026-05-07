@@ -164,6 +164,15 @@ describe("configAuthentication", () => {
     );
   });
 
+  it("should export PNPM_CONFIG_USERCONFIG", () => {
+    configAuthentication("https://registry.npmjs.org/");
+
+    expect(exportVariable).toHaveBeenCalledWith(
+      "PNPM_CONFIG_USERCONFIG",
+      join(runnerTemp, ".npmrc"),
+    );
+  });
+
   it("should export NODE_AUTH_TOKEN placeholder when not set", () => {
     configAuthentication("https://registry.npmjs.org/");
 
@@ -317,6 +326,7 @@ describe("propagateProjectNpmrcAuth", () => {
       expect.stringContaining("//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}"),
     );
     expect(exportVariable).toHaveBeenCalledWith("NPM_CONFIG_USERCONFIG", supplementalPath);
+    expect(exportVariable).toHaveBeenCalledWith("PNPM_CONFIG_USERCONFIG", supplementalPath);
     expect(exportVariable).toHaveBeenCalledWith("NODE_AUTH_TOKEN", "ghp_xxx");
   });
 
@@ -355,6 +365,7 @@ describe("propagateProjectNpmrcAuth", () => {
 
     expect(writeFileSync).not.toHaveBeenCalled();
     expect(exportVariable).not.toHaveBeenCalledWith("NPM_CONFIG_USERCONFIG", expect.anything());
+    expect(exportVariable).not.toHaveBeenCalledWith("PNPM_CONFIG_USERCONFIG", expect.anything());
   });
 
   it("writes _authToken for multiple missing registries", () => {
@@ -410,6 +421,7 @@ describe("propagateProjectNpmrcAuth", () => {
 
     expect(writeFileSync).not.toHaveBeenCalled();
     expect(exportVariable).toHaveBeenCalledWith("NPM_CONFIG_USERCONFIG", supplementalPath);
+    expect(exportVariable).toHaveBeenCalledWith("PNPM_CONFIG_USERCONFIG", supplementalPath);
   });
 
   it("skips registries whose value contains ${VAR} (cannot synthesize a valid auth key)", () => {
