@@ -54,13 +54,84 @@ export async function installVitePlus(inputs: Inputs): Promise<void> {
 async function runInstallCommand(env: { [key: string]: string }): Promise<number> {
   const options = { env, ignoreReturnCode: true };
   if (process.platform === "win32") {
-    return exec(
-      "pwsh",
-      ["-Command", `& ([scriptblock]::Create((irm ${INSTALL_URL_PS1})))`],
-      options,
-    );
+    return exec("pwsh", ["-NoProfile", "-Command", buildWindowsInstallCommand()], options);
   }
   return exec("bash", ["-c", `curl -fsSL ${INSTALL_URL_SH} | bash`], options);
+}
+
+// Diagnostic wrapper around install.ps1: prints stage markers and a 30s
+// heartbeat that snapshots the descendant process tree, so a hang inside the
+// upstream installer (e.g. pnpm install during `vp install`) shows up in CI
+// logs instead of timing out silently.
+function buildWindowsInstallCommand(): string {
+  return `
+$ErrorActionPreference = 'Stop'
+function Write-Stage($m) {
+  Write-Host "[stage $((Get-Date).ToUniversalTime().ToString('o'))] $m"
+}
+
+Write-Stage "VP_VERSION=$env:VP_VERSION"
+Write-Stage "fetching ${INSTALL_URL_PS1}"
+$installScript = Invoke-RestMethod -Uri '${INSTALL_URL_PS1}'
+Write-Stage "fetched install.ps1 ($($installScript.Length) chars)"
+
+$selfPid = $PID
+$heartbeat = Start-ThreadJob -StreamingHost $Host -ScriptBlock {
+  param($parentPid)
+  function Get-Descendants($rootPid) {
+    $all = Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,Name,CommandLine
+    $byParent = @{}
+    foreach ($p in $all) {
+      $key = [int]$p.ParentProcessId
+      if (-not $byParent.ContainsKey($key)) { $byParent[$key] = @() }
+      $byParent[$key] += $p
+    }
+    $out = @()
+    $stack = New-Object System.Collections.Stack
+    $stack.Push([int]$rootPid)
+    while ($stack.Count -gt 0) {
+      $p = $stack.Pop()
+      if ($byParent.ContainsKey($p)) {
+        foreach ($child in $byParent[$p]) {
+          $out += $child
+          $stack.Push([int]$child.ProcessId)
+        }
+      }
+    }
+    return $out
+  }
+  while ($true) {
+    Start-Sleep -Seconds 30
+    $ts = (Get-Date).ToUniversalTime().ToString('o')
+    try {
+      $descendants = Get-Descendants -rootPid $parentPid
+      Write-Host "[heartbeat $ts] $($descendants.Count) descendants of pid=$parentPid"
+      foreach ($d in $descendants) {
+        Write-Host ("  pid={0} ppid={1} {2} :: {3}" -f $d.ProcessId, $d.ParentProcessId, $d.Name, $d.CommandLine)
+      }
+    } catch {
+      Write-Host "[heartbeat $ts] error: $_"
+    }
+  }
+} -ArgumentList $selfPid
+
+Write-Stage "executing install.ps1"
+$startTs = Get-Date
+$exitCode = 0
+try {
+  & ([scriptblock]::Create($installScript))
+  $exitCode = $LASTEXITCODE
+} catch {
+  Write-Stage "install.ps1 threw: $_"
+  $exitCode = 1
+} finally {
+  $heartbeat | Stop-Job -ErrorAction SilentlyContinue | Out-Null
+  $heartbeat | Remove-Job -Force -ErrorAction SilentlyContinue | Out-Null
+  $elapsed = ((Get-Date) - $startTs).TotalSeconds
+  Write-Stage "install.ps1 finished after $elapsed s with exit=$exitCode"
+}
+exit $exitCode
+`.trim();
 }
 
 function ensureVitePlusBinInPath(): void {
