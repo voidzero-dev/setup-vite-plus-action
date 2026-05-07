@@ -81,6 +81,8 @@ function writeRegistryToFile(registryUrl: string, fileLocation: string, scope?: 
   writeFileSync(fileLocation, lines.join(EOL));
 
   exportVariable("NPM_CONFIG_USERCONFIG", fileLocation);
+  exportVariable("PNPM_CONFIG_USERCONFIG", fileLocation); // For pnpm 11+
+
   // Export placeholder if NODE_AUTH_TOKEN is not set so npm doesn't error
   exportVariable("NODE_AUTH_TOKEN", process.env.NODE_AUTH_TOKEN || "XXXXX-XXXXX-XXXXX-XXXXX");
 }
@@ -152,6 +154,7 @@ function writeSupplementalAuth(registries: string[]): void {
 
   const nextContent = [...keepLines, ...registries.map(buildAuthLine)].join(EOL);
   exportVariable("NPM_CONFIG_USERCONFIG", npmrcPath);
+  exportVariable("PNPM_CONFIG_USERCONFIG", npmrcPath); // For pnpm 11+
 
   if (existing === nextContent) {
     debug(`Supplemental .npmrc at ${npmrcPath} already current`);
